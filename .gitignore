@@ -1,0 +1,78 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+build/
+.output/
+.nuxt/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Database
+*.sqlite3
+*.db
+
+# CSV files (個人情報保護)
+*.csv
+
+# Ruby
+.bundle/
+tmp/
+log/
+.byebug_history
+.rvm-gemsets
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Screenshots and mockups
+*.png
+*.jpg
+*.jpeg
+*.gif
+mockup*.html
+details_mockup*.html
+
+# Package files
+package-lock.json
+yarn.lock
+
+# Rails specific
+config/master.key
+config/credentials/*.key
+storage/
