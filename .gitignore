@@ -35,8 +35,11 @@ build/
 *.sqlite3
 *.db
 
-# CSV files (個人情報保護)
+# CSV files and data folder (個人情報保護)
 *.csv
+data/
+!data/README.md
+!data/rakuten_card/README.md
 
 # Ruby
 .bundle/
