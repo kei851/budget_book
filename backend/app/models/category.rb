@@ -1,0 +1,17 @@
+class Category < ApplicationRecord
+  has_many :transactions, dependent: :nullify
+  
+  validates :name, presence: true, uniqueness: true
+  validates :color, presence: true, format: { with: /\A#[0-9A-Fa-f]{6}\z/, message: "must be a valid hex color code" }
+  validates :display_order, presence: true, numericality: { only_integer: true }
+  
+  scope :ordered, -> { order(:display_order, :name) }
+  
+  def transaction_count
+    transactions.count
+  end
+  
+  def total_amount
+    transactions.sum(:amount)
+  end
+end
