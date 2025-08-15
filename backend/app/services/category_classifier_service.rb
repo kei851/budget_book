@@ -1,9 +1,5 @@
 # カテゴリ自動分類サービス
 class CategoryClassifierService
-  def initialize
-    @classification_rules = build_classification_rules
-  end
-
   def classify(store_name)
     return nil if store_name.blank?
     
@@ -11,88 +7,18 @@ class CategoryClassifierService
     store_name_normalized = NKF.nkf('-w', store_name)
     store_name_lower = store_name_normalized.downcase
     
-    @classification_rules.each do |category_name, keywords|
-      if keywords.any? { |keyword| store_name_lower.include?(keyword.downcase) }
-        return Category.find_by(name: category_name)
+    # 優先順位の高い順にキーワードをチェック
+    # キーワードごとに検索してマッチした場合、そのカテゴリを返す
+    matching_keywords = CategoryKeyword.joins(:category)
+                                     .for_classification
+                                     .select('category_keywords.*, categories.name as category_name')
+    
+    matching_keywords.each do |keyword_record|
+      if store_name_lower.include?(keyword_record.keyword.downcase)
+        return keyword_record.category
       end
     end
     
     nil
-  end
-
-  private
-
-  def build_classification_rules
-    {
-      '食費' => [
-        'セブンイレブン', 'ローソン', 'ファミマ', 'ファミリーマート', 'デイリーヤマザキ',
-        'マクドナルド', 'ケンタッキー', 'スターバックス', 'ドトール', 'タリーズ',
-        'すき家', '松屋', '吉野家', '大戸屋', 'サイゼリヤ', 'ガスト', 'ジョナサン',
-        'イオン', '西友', 'ライフ', '成城石井', '業務スーパー', 'コストコ',
-        'amazon', 'rakuten', '楽天', 'uber', 'ubereats', '出前館',
-        'スーパー', 'コンビニ', 'レストラン', '居酒屋', 'カフェ', '喫茶',
-        '食堂', 'グルメ', '弁当', 'パン', 'ケーキ', 'pizza',
-        # 楽天カード特有の店舗名パターン（半角カタカナ対応）
-        'セブン-イレブン', 'マクドナルド', 'マツヤ', 'ホットモット', 'ジャパンミート'
-      ],
-      '交通費' => [
-        'jr', 'JR', '駅', '電車', '地下鉄', 'メトロ', '私鉄', 'バス',
-        'タクシー', 'uber', '新幹線', '航空', 'ana', 'jal', 'peach',
-        'ガソリン', 'エネオス', 'シェル', 'コスモ', 'エッソ', 'モービル',
-        '駐車場', 'パーキング', '高速道路', 'etc', 'nexco',
-        '交通', '運賃', '乗車券', '定期券', '回数券',
-        # 楽天カード特有の店舗名パターン
-        'トウダイノウガク', 'トウダイギンナンメトロ', 'メトロ', 'トウダイ'
-      ],
-      '光熱費' => [
-        '東京電力', '関西電力', '中部電力', '東北電力', '九州電力', '中国電力', '四国電力', '北海道電力', '北陸電力', '沖縄電力',
-        '東京ガス', '大阪ガス', 'エルピーガス', 'プロパンガス',
-        '水道', '上下水道', 'ガス', '電気', '電力', '光熱'
-      ],
-      '通信費' => [
-        'docomo', 'au', 'softbank', 'rakuten mobile', '楽天モバイル',
-        'ntt', 'kddi', 'ソフトバンク', 'ahamo', 'povo', 'linemo',
-        'mineo', 'uq mobile', 'ymobile', 'biglobeモバイル', 'iijmio',
-        '通信', 'インターネット', 'wifi', 'プロバイダ', '携帯', 'スマホ', '電話'
-      ],
-      '娯楽費' => [
-        'netflix', 'amazon prime', 'spotify', 'apple music', 'youtube',
-        'steam', 'playstation', 'nintendo', 'xbox',
-        '映画', 'シネマ', '劇場', 'コンサート', 'ライブ', 'カラオケ',
-        '遊園地', 'ディズニー', 'usj', '水族館', '動物園', '博物館',
-        'パチンコ', 'パチスロ', '競馬', '競輪', '宝くじ',
-        '娯楽', 'エンタメ', 'ゲーム', 'アプリ'
-      ],
-      '日用品' => [
-        'ドラッグストア', 'マツキヨ', 'ウエルシア', 'サンドラッグ', 'ツルハ',
-        'ダイソー', 'セリア', 'キャンドゥ', '100円ショップ',
-        'ニトリ', 'ikea', 'イケア', '無印良品', 'loft', 'ロフト', '東急ハンズ',
-        'ホームセンター', 'コーナン', 'カインズ', 'コメリ',
-        '薬局', '化粧品', '洗剤', 'シャンプー', 'トイレットペーパー',
-        '日用品', '雑貨', '生活用品', '消耗品'
-      ],
-      '医療費' => [
-        '病院', 'クリニック', '診療所', '歯科', '眼科', '皮膚科', '内科', '外科',
-        '薬局', 'ドラッグストア', '処方箋', '薬代',
-        '医療', '治療', '診察', '検査', '手術', 'ワクチン'
-      ],
-      '教育費' => [
-        '学校', '大学', '専門学校', '塾', '予備校', '習い事',
-        'kindle', '本', '書店', '参考書', '教材',
-        '授業料', '入学金', '教育', '学習', '講座'
-      ],
-      '被服費' => [
-        'uniqlo', 'gu', 'zara', 'h&m', 'しまむら', '青山',
-        'nike', 'adidas', 'puma', 'new balance',
-        '洋服', '靴', 'バッグ', 'アクセサリー', '時計',
-        'ファッション', '服飾', '被服', 'アパレル'
-      ],
-      'その他' => [
-        '年会費', '手数料', '振込', '送金', 'atm',
-        '保険', '税金', '住民税', '所得税', '固定資産税',
-        '寄付', '募金', 'ふるさと納税',
-        'その他', '雑費', '諸費用'
-      ]
-    }
   end
 end

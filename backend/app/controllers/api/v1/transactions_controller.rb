@@ -87,7 +87,7 @@ class Api::V1::TransactionsController < ApplicationController
                                 .sum(:amount)
     
     # 月別推移データ
-    monthly_totals = transactions.group_by_month(:transaction_date, last: 12)
+    monthly_totals = transactions.group_by_month(:transaction_date)
                                .sum(:amount)
     
     render json: {
@@ -108,8 +108,8 @@ class Api::V1::TransactionsController < ApplicationController
       end_date = Date.parse(params[:end_date])
       transactions = transactions.where(transaction_date: start_date..end_date)
     else
-      # デフォルトは過去1年
-      transactions = transactions.where(transaction_date: 1.year.ago..Date.current)
+      # デフォルトは全期間
+      # transactions = transactions (期間制限なし)
     end
     
     # カテゴリ別分析

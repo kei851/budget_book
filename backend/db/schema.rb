@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_12_152939) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_15_115334) do
   create_table "categories", force: :cascade do |t|
     t.string "name", null: false
     t.string "color", null: false
@@ -21,6 +21,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_12_152939) do
     t.datetime "updated_at", null: false
     t.index ["display_order"], name: "index_categories_on_display_order"
     t.index ["name"], name: "index_categories_on_name", unique: true
+  end
+
+  create_table "category_keywords", force: :cascade do |t|
+    t.integer "category_id", null: false
+    t.string "keyword", null: false
+    t.integer "priority", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category_id", "keyword"], name: "index_category_keywords_on_category_id_and_keyword", unique: true
+    t.index ["category_id"], name: "index_category_keywords_on_category_id"
+    t.index ["keyword"], name: "index_category_keywords_on_keyword"
   end
 
   create_table "transactions", force: :cascade do |t|
@@ -41,5 +52,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_12_152939) do
     t.index ["transaction_date"], name: "index_transactions_on_transaction_date"
   end
 
+  add_foreign_key "category_keywords", "categories"
   add_foreign_key "transactions", "categories"
 end

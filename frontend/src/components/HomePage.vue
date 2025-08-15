@@ -4,7 +4,11 @@
     .upload-section
       .upload-icon 📁
       .upload-text 右の対応済みの形式のファイルをアップロード
-      FileUpload(@file-uploaded="handleFileUpload" :loading="loading")
+      FileUpload(
+        @file-uploaded="handleFileUpload" 
+        @folder-uploaded="handleFolderUpload"
+        :loading="loading"
+      )
     
     .format-table-section
       h3 対応ファイル形式
@@ -209,6 +213,64 @@ export default {
       }
     }
     
+    const handleFolderUpload = async (data) => {
+      console.log('フォルダーアップロード開始:', data.files.length, '個のファイル')
+      
+      loading.value = true
+      const files = data.files
+      const uploadProgress = data.uploadProgress
+      const results = []
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        uploadProgress.current = i + 1
+        
+        try {
+          console.log(`ファイル ${i + 1}/${files.length} 処理中: ${file.name}`)
+          
+          const result = await apiService.uploadCsv(file, true)
+          console.log(`${file.name} 完了:`, result)
+          
+          results.push({ 
+            file: file.name, 
+            status: 'success', 
+            importedCount: result.imported_count || 0
+          })
+          
+          // 少し待機
+          await new Promise(resolve => setTimeout(resolve, 300))
+          
+        } catch (error) {
+          console.error(`${file.name} の処理でエラー:`, error)
+          results.push({ 
+            file: file.name, 
+            status: 'error', 
+            error: error.message 
+          })
+        }
+      }
+      
+      // 処理完了
+      uploadProgress.current = 0
+      uploadProgress.total = 0
+      loading.value = false
+      
+      const successCount = results.filter(r => r.status === 'success').length
+      const errorCount = results.filter(r => r.status === 'error').length
+      const totalImported = results
+        .filter(r => r.status === 'success')
+        .reduce((sum, r) => sum + r.importedCount, 0)
+      
+      if (successCount > 0) {
+        alert(`${successCount}個のファイルを処理完了！\n合計 ${totalImported}件のデータをインポートしました。${errorCount > 0 ? `\n${errorCount}個のファイルでエラーが発生しました。` : ''}`)
+        
+        // データを再読み込み
+        await loadData()
+      } else {
+        alert('すべてのファイルでエラーが発生しました。')
+      }
+    }
+    
     const handlePeriodChange = (period) => {
       selectedPeriod.value = period
       console.log('期間変更:', period)
@@ -228,6 +290,7 @@ export default {
       summaryData,
       uploadSuccess,
       handleFileUpload,
+      handleFolderUpload,
       handlePeriodChange
     }
   }

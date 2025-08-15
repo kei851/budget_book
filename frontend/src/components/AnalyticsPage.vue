@@ -2,6 +2,8 @@
 .analytics-page
   .month-navigation
     .nav-controls
+      button.nav-btn(@click="previousYear")
+        span.arrow-double ≪
       button.nav-btn(@click="previousMonth" :disabled="!canGoPrevious")
         span.arrow ←
       .month-selector(@click="showMonthPicker = !showMonthPicker")
@@ -9,6 +11,8 @@
         span.dropdown-arrow {{ showMonthPicker ? '▲' : '▼' }}
       button.nav-btn(@click="nextMonth" :disabled="!canGoNext")
         span.arrow →
+      button.nav-btn(@click="nextYear" :disabled="!canGoNextYear")
+        span.arrow-double ≫
     
     .month-picker(v-show="showMonthPicker")
       .year-header {{ currentYear }}年
@@ -117,155 +121,9 @@ export default {
       transactionCount: 0
     })
     
-    // サンプルデータ
-    const transactions = ref([
-      {
-        date: '2024/08/10',
-        store: 'Amazon.co.jp',
-        category: 'other',
-        categoryText: 'その他',
-        amount: '￥48,500'
-      },
-      {
-        date: '2024/08/09',
-        store: '楽天証券',
-        category: 'investment',
-        categoryText: '投資',
-        amount: '￥45,000'
-      },
-      {
-        date: '2024/08/08',
-        store: 'イオンモール',
-        category: 'food',
-        categoryText: '食費',
-        amount: '￥12,450'
-      },
-      {
-        date: '2024/08/07',
-        store: 'Netflix',
-        category: 'entertainment',
-        categoryText: '娯楽費',
-        amount: '￥1,490'
-      },
-      {
-        date: '2024/08/06',
-        store: 'JR東日本',
-        category: 'transport',
-        categoryText: '交通費',
-        amount: '￥1,340'
-      },
-      {
-        date: '2024/08/05',
-        store: '住宅管理会社',
-        category: 'housing',
-        categoryText: '住宅費',
-        amount: '￥8,920'
-      },
-      {
-        date: '2024/08/04',
-        store: 'スターバックス',
-        category: 'food',
-        categoryText: '食費',
-        amount: '￥890'
-      },
-      {
-        date: '2024/08/03',
-        store: 'Spotify',
-        category: 'daily',
-        categoryText: '日用品費',
-        amount: '￥980'
-      }
-    ])
+    // 実際のデータ
+    const transactions = ref([])
     
-    const createCharts = () => {
-      // カテゴリ別円グラフ
-      const pieCtx = categoryPieChart.value.getContext('2d')
-      new Chart(pieCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['投資', '食費', '日用品費', '娯楽費', '住宅費', '交通費', 'その他'],
-          datasets: [{
-            data: [531000, 424000, 298000, 211000, 108000, 166000, 286000],
-            backgroundColor: [
-              '#FF6384',
-              '#4BC0C0', 
-              '#9966FF',
-              '#36A2EB',
-              '#FF9F40',
-              '#FFCE56',
-              '#C9CBCF'
-            ],
-            borderWidth: 2,
-            borderColor: '#fff'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                usePointStyle: true,
-                padding: 15,
-                font: { size: 11 }
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const total = context.dataset.data.reduce((a, b) => a + b, 0)
-                  const percentage = ((context.parsed * 100) / total).toFixed(1)
-                  return context.label + ': ￥' + context.parsed.toLocaleString() + ' (' + percentage + '%)'
-                }
-              }
-            }
-          }
-        }
-      })
-
-      // 日別推移線グラフ
-      const lineCtx = dailyLineChart.value.getContext('2d')
-      new Chart(lineCtx, {
-        type: 'line',
-        data: {
-          labels: ['8/1', '8/2', '8/3', '8/4', '8/5', '8/6', '8/7', '8/8', '8/9', '8/10'],
-          datasets: [{
-            label: '日別支出',
-            data: [4200, 8900, 2340, 12450, 8920, 1340, 1490, 12450, 45000, 48500],
-            borderColor: '#4CAF50',
-            backgroundColor: 'rgba(76, 175, 80, 0.1)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: function(value) {
-                  return '￥' + value.toLocaleString()
-                }
-              }
-            }
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  return '支出: ￥' + context.parsed.y.toLocaleString()
-                }
-              }
-            }
-          }
-        }
-      })
-    }
     
     const handleCategoryChange = (index, newCategory) => {
       transactions.value[index].category = newCategory.category
@@ -285,6 +143,11 @@ export default {
     const canGoNext = computed(() => {
       const now = new Date()
       return !(currentYear.value === now.getFullYear() && currentMonth.value === now.getMonth() + 1)
+    })
+    
+    const canGoNextYear = computed(() => {
+      const now = new Date()
+      return currentYear.value < now.getFullYear()
     })
     
     const hasDataForMonth = (month) => {
@@ -316,6 +179,18 @@ export default {
       if (hasDataForMonth(month)) {
         currentMonth.value = month
         showMonthPicker.value = false
+        loadMonthData()
+      }
+    }
+    
+    const previousYear = () => {
+      currentYear.value--
+      loadMonthData()
+    }
+    
+    const nextYear = () => {
+      if (canGoNextYear.value) {
+        currentYear.value++
         loadMonthData()
       }
     }
@@ -495,6 +370,7 @@ export default {
 
     onMounted(() => {
       loadAvailableMonths()
+      loadMonthlyData()
     })
     
     return {
@@ -510,9 +386,12 @@ export default {
       formattedCurrentMonth,
       canGoPrevious,
       canGoNext,
+      canGoNextYear,
       hasDataForMonth,
       previousMonth,
       nextMonth,
+      previousYear,
+      nextYear,
       selectMonth,
       formatCurrency,
       handleCategoryChange,
@@ -568,6 +447,11 @@ export default {
   
   .arrow {
     font-size: 1.2em;
+    font-weight: bold;
+  }
+  
+  .arrow-double {
+    font-size: 1.0em;
     font-weight: bold;
   }
 }
