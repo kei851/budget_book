@@ -6,7 +6,6 @@ header.header
   .header-content(v-else)
     .header-left
       h1.header__title 📊 詳細分析
-      .header__subtitle 2024年08月
     button.nav-btn(@click="$emit('navigate', 'home')") ← メイン画面
 </template>
 

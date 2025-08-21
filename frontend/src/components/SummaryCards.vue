@@ -2,15 +2,15 @@
 .summary-cards
   .summary-card.summary-card--red
     .summary-card__title 今月の支出
-    .summary-card__value ¥{{ formatNumber(summary.thisMonth) }}
+    .summary-card__value {{ isPrivacyMode ? '¥***' : '¥' + formatNumber(summary.thisMonth) }}
   
   .summary-card.summary-card--green  
     .summary-card__title 月平均支出
-    .summary-card__value ¥{{ formatNumber(summary.monthlyAverage) }}
+    .summary-card__value {{ isPrivacyMode ? '¥***' : '¥' + formatNumber(summary.monthlyAverage) }}
   
   .summary-card.summary-card--blue
     .summary-card__title 最高支出月
-    .summary-card__value ¥{{ formatNumber(summary.maxMonth) }}
+    .summary-card__value {{ isPrivacyMode ? '¥***' : '¥' + formatNumber(summary.maxMonth) }}
   
   .summary-card.summary-card--orange
     .summary-card__title 処理データ数
@@ -33,10 +33,14 @@ export default {
         maxMonth: 0,
         dataCount: 0
       })
+    },
+    isPrivacyMode: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['navigate-to-analytics'],
-  setup() {
+  setup(props) {
     const formatNumber = (num) => {
       return num.toLocaleString()
     }

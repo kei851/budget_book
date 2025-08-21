@@ -40,23 +40,21 @@
             td
               span.status.planned 予定
   
+  .privacy-toggle
+    button.privacy-btn(@click="togglePrivacyMode" :class="{ active: isPrivacyMode }")
+      span.privacy-icon 👁
+      span.privacy-text {{ isPrivacyMode ? '金額表示' : '金額非表示' }}
+
   .chart-section
     .chart-header
-      .chart-title 月毎支出グラフ
-      .period-selector
-        .period-btn(
-          v-for="period in periods" 
-          :key="period"
-          :class="{ active: selectedPeriod === period }"
-          @click="handlePeriodChange(period)"
-        ) {{ period }}
+      .chart-title 月毎支出グラフ（12ヶ月）
     
     ExpenseChart(
-      :data="chartData" 
-      :period="selectedPeriod"
+      :data="chartData"
+      :isPrivacyMode="isPrivacyMode"
     )
     
-    SummaryCards(:summary="summaryData" @navigate-to-analytics="$emit('navigate', 'analytics')")
+    SummaryCards(:summary="summaryData" :isPrivacyMode="isPrivacyMode" @navigate-to-analytics="$emit('navigate', 'analytics')")
 </template>
 
 <script>
@@ -76,12 +74,11 @@ export default {
   emits: ['navigate'],
   setup() {
     const loading = ref(false)
-    const selectedPeriod = ref('12ヶ月')
-    const periods = ['3ヶ月', '6ヶ月', '12ヶ月', '全期間']
     const uploadSuccess = ref(false)
+    const isPrivacyMode = ref(false) // 金額非表示モード
     
     // リアクティブなデータ
-    const chartData = reactive({
+    const chartData = ref({
       labels: [],
       datasets: []
     })
@@ -102,65 +99,65 @@ export default {
       } catch (error) {
         console.error('データ読み込みエラー:', error)
         // データがない場合は空のグラフを表示
-        chartData.labels = []
-        chartData.datasets = []
+        chartData.value = {
+          labels: [],
+          datasets: []
+        }
       }
     }
     
     // チャートデータ更新
     const updateChartData = async () => {
       try {
-        // 過去12ヶ月のデータを取得
         const analyticsData = await apiService.getAnalyticsData()
         
-        if (!analyticsData.daily_totals || Object.keys(analyticsData.daily_totals).length === 0) {
-          chartData.labels = []
-          chartData.datasets = []
+        if (!analyticsData.category_stats || analyticsData.category_stats.length === 0) {
+          chartData.value = {
+            labels: [],
+            datasets: []
+          }
           return
         }
 
-        // 月別に集計
-        const monthlyData = {}
-        const categoryMonthlyData = {}
-        
-        Object.keys(analyticsData.daily_totals).forEach(date => {
-          const d = new Date(date)
-          const monthKey = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`
-          
-          if (!monthlyData[monthKey]) {
-            monthlyData[monthKey] = 0
+        // 全ての月データを取得して過去12ヶ月分を決定
+        const allMonths = new Set()
+        analyticsData.category_stats.forEach(category => {
+          if (category.monthly_data) {
+            Object.keys(category.monthly_data).forEach(month => {
+              allMonths.add(month)
+            })
           }
-          monthlyData[monthKey] += analyticsData.daily_totals[date] || 0
         })
-
-        // 月別カテゴリデータも取得（簡易版）
-        const monthlyApiData = await apiService.getMonthlyData()
-        const categoryTotals = monthlyApiData.category_totals || []
         
-        // 月別データをソートして最新12ヶ月分を取得
-        const sortedMonths = Object.keys(monthlyData).sort()
-        const last12Months = sortedMonths.slice(-12)
+        const sortedMonths = Array.from(allMonths).sort().slice(-12)
         
-        chartData.labels = last12Months.map(monthKey => {
-          const [year, month] = monthKey.split('-')
-          return `${year}/${month}`
-        })
-
-        // カテゴリ別データセット作成
-        chartData.datasets = categoryTotals.map(cat => ({
-          label: cat.category,
-          data: last12Months.map(monthKey => {
-            // 各月のデータ（簡単のため全期間の平均を使用）
-            return Math.round((cat.total / 12) || 0)
+        // 各カテゴリのデータセットを作成
+        const datasets = analyticsData.category_stats.map(category => ({
+          label: category.name,
+          data: sortedMonths.map(month => {
+            const value = category.monthly_data[month]
+            return value ? Math.round(parseFloat(value)) : 0
           }),
-          backgroundColor: cat.color,
+          backgroundColor: category.color,
           borderWidth: 0
         }))
         
+        chartData.value = {
+          labels: sortedMonths.map(monthKey => {
+            const [year, month] = monthKey.split('-')
+            return `${year}/${month}`
+          }),
+          datasets: datasets.filter(dataset => 
+            dataset.data.some(val => val > 0)
+          )
+        }
+        
       } catch (error) {
         console.error('チャートデータ更新エラー:', error)
-        chartData.labels = []
-        chartData.datasets = []
+        chartData.value = {
+          labels: [],
+          datasets: []
+        }
       }
     }
     
@@ -170,13 +167,17 @@ export default {
       const currentYear = new Date().getFullYear()
       const currentMonthKey = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`
       
-      summaryData.thisMonth = data.monthly_totals[currentMonthKey] || 0
+      summaryData.thisMonth = data.monthly_totals[currentMonthKey] 
+        ? Math.round(parseFloat(data.monthly_totals[currentMonthKey])) : 0
       
       const monthlyValues = Object.values(data.monthly_totals)
+        .map(val => parseFloat(val))
+        .filter(val => !isNaN(val) && val > 0)
+      
       summaryData.monthlyAverage = monthlyValues.length > 0 
         ? Math.round(monthlyValues.reduce((a, b) => a + b, 0) / monthlyValues.length) 
         : 0
-      summaryData.maxMonth = monthlyValues.length > 0 ? Math.max(...monthlyValues) : 0
+      summaryData.maxMonth = monthlyValues.length > 0 ? Math.round(Math.max(...monthlyValues)) : 0
       summaryData.dataCount = data.transaction_count || 0
     }
     
@@ -228,8 +229,11 @@ export default {
         try {
           console.log(`ファイル ${i + 1}/${files.length} 処理中: ${file.name}`)
           
-          const result = await apiService.uploadCsv(file, true)
+          // 最初のファイルのみ既存データを削除、残りは追加
+          const clearExisting = i === 0
+          const result = await apiService.uploadCsv(file, clearExisting)
           console.log(`${file.name} 完了:`, result)
+          console.log('result.imported_count:', result.imported_count)
           
           results.push({ 
             file: file.name, 
@@ -261,20 +265,26 @@ export default {
         .filter(r => r.status === 'success')
         .reduce((sum, r) => sum + r.importedCount, 0)
       
-      if (successCount > 0) {
-        alert(`${successCount}個のファイルを処理完了！\n合計 ${totalImported}件のデータをインポートしました。${errorCount > 0 ? `\n${errorCount}個のファイルでエラーが発生しました。` : ''}`)
+      console.log('フォルダーアップロード完了結果:', {
+        成功ファイル数: successCount,
+        エラーファイル数: errorCount,
+        合計インポート件数: totalImported,
+        詳細: results
+      })
+      
+      if (successCount > 0 || totalImported > 0) {
+        alert(`${successCount}個のファイルを処理完了！\n合計 ${totalImported}件のデータをインポートしました。${errorCount > 0 ? `\n${errorCount}個のファイルは空またはエラーでした。` : ''}`)
         
         // データを再読み込み
         await loadData()
       } else {
-        alert('すべてのファイルでエラーが発生しました。')
+        alert('処理可能なデータが見つかりませんでした。CSVファイルの内容を確認してください。')
       }
     }
     
-    const handlePeriodChange = (period) => {
-      selectedPeriod.value = period
-      console.log('期間変更:', period)
-      // TODO: 期間に応じたデータフィルタリング実装
+    
+    const togglePrivacyMode = () => {
+      isPrivacyMode.value = !isPrivacyMode.value
     }
     
     // 初期データ読み込み
@@ -284,14 +294,13 @@ export default {
     
     return {
       loading,
-      selectedPeriod,
-      periods,
       chartData,
       summaryData,
       uploadSuccess,
       handleFileUpload,
       handleFolderUpload,
-      handlePeriodChange
+      isPrivacyMode,
+      togglePrivacyMode
     }
   }
 }
@@ -431,6 +440,47 @@ export default {
   
   &:hover:not(.active) {
     background: #dee2e6;
+  }
+}
+
+.privacy-toggle {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.privacy-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9em;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  }
+  
+  &.active {
+    background: linear-gradient(135deg, #ff7675 0%, #fd79a8 100%);
+    
+    .privacy-icon {
+      filter: brightness(0.8);
+    }
+  }
+  
+  .privacy-icon {
+    font-size: 1.1em;
+    transition: all 0.3s ease;
+  }
+  
+  .privacy-text {
+    font-weight: 600;
   }
 }
 </style>

@@ -63,10 +63,10 @@ class CsvImportService
       # データが空の場合の処理
       if csv_data.empty?
         return {
-          success: false,
+          success: true,  # 空ファイルは成功として扱う
           imported_count: 0,
           total_rows: 0,
-          errors: ["CSVファイルにデータが見つかりませんでした"]
+          errors: ["CSVファイルは空でした"]
         }
       end
       
@@ -80,7 +80,7 @@ class CsvImportService
       end
       
       {
-        success: @errors.empty?,
+        success: @errors.empty? || @imported_count > 0,  # インポートが1件でもあれば成功
         imported_count: @imported_count,
         total_rows: csv_data.size,
         errors: @errors

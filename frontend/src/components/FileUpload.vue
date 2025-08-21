@@ -60,13 +60,13 @@ export default {
     })
     
     const triggerFileInput = () => {
-      if (!props.loading) {
+      if (!props.loading && fileInput.value) {
         fileInput.value.click()
       }
     }
     
     const triggerFolderInput = () => {
-      if (!props.loading) {
+      if (!props.loading && folderInput.value) {
         folderInput.value.click()
       }
     }
@@ -80,7 +80,12 @@ export default {
     
     const handleFolderSelect = (event) => {
       const files = Array.from(event.target.files)
+      console.log('選択されたファイル数:', files.length)
+      console.log('ファイル一覧:', files.map(f => f.name))
+      
       const csvFiles = files.filter(file => file.name.toLowerCase().endsWith('.csv'))
+      console.log('CSVファイル数:', csvFiles.length)
+      console.log('CSVファイル一覧:', csvFiles.map(f => f.name))
       
       if (csvFiles.length === 0) {
         alert('CSVファイルが見つかりませんでした')
@@ -108,9 +113,6 @@ export default {
     }
     
     const handleMultipleFiles = async (files) => {
-      uploadProgress.current = 0
-      uploadProgress.total = files.length
-      
       // ファイルサイズチェック
       const validFiles = files.filter(file => {
         if (file.size > 100 * 1024 * 1024) {
@@ -126,6 +128,10 @@ export default {
         uploadProgress.total = 0
         return
       }
+      
+      // 有効なファイル数でプログレスを設定
+      uploadProgress.current = 0
+      uploadProgress.total = validFiles.length
       
       // フォルダーアップロードイベントを発行
       emit('folder-uploaded', {

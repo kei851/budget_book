@@ -6,15 +6,17 @@
       :current-page="currentPage"
     )
     main.content
-      component(
-        :is="currentPageComponent"
-        @navigate="handleNavigation"
-      )
+      KeepAlive
+        component(
+          :is="currentPageComponent"
+          :key="currentPage"
+          @navigate="handleNavigation"
+        )
     AppFooter
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, KeepAlive } from 'vue'
 import AppHeader from './components/AppHeader.vue'
 import AppFooter from './components/AppFooter.vue'
 import HomePage from './components/HomePage.vue'
@@ -26,7 +28,8 @@ export default {
     AppHeader,
     AppFooter,
     HomePage,
-    AnalyticsPage
+    AnalyticsPage,
+    KeepAlive
   },
   setup() {
     const currentPage = ref('home')

@@ -79,3 +79,12 @@ yarn.lock
 config/master.key
 config/credentials/*.key
 storage/
+
+# Development files
+test_classification.rb
+add_new_keywords.rb
+cleanup_keywords.rb
+import_keywords_from_csv.rb
+
+# Claude AI
+.claude/

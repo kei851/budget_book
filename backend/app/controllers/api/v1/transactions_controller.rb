@@ -44,6 +44,8 @@ class Api::V1::TransactionsController < ApplicationController
     end
 
     begin
+      Rails.logger.info "CSV Import Started: #{params[:csv_file].original_filename}"
+      
       # 既存の取引データを削除
       Transaction.delete_all if params[:clear_existing] == 'true'
       
@@ -51,7 +53,9 @@ class Api::V1::TransactionsController < ApplicationController
       import_service = CsvImportService.new(params[:csv_file])
       result = import_service.import
       
-      if result[:success]
+      Rails.logger.info "CSV Import Result: #{result.inspect}"
+      
+      if result[:success] || result[:imported_count] > 0
         render json: {
           message: 'CSVインポートが完了しました',
           imported_count: result[:imported_count],
@@ -59,13 +63,14 @@ class Api::V1::TransactionsController < ApplicationController
           errors: result[:errors]
         }
       else
+        Rails.logger.error "CSV Import Failed: #{result[:errors]}"
         render json: {
           error: 'CSVインポートに失敗しました',
           errors: result[:errors]
         }, status: :unprocessable_entity
       end
     rescue => e
-      Rails.logger.error "Import Error: #{e.message}"
+      Rails.logger.error "Import Error: #{e.message}\n#{e.backtrace.join("\n")}"
       render json: { error: "インポート処理中にエラーが発生しました: #{e.message}" }, status: :internal_server_error
     end
   end

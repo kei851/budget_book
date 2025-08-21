@@ -33,8 +33,18 @@ export default {
   setup(props, { emit }) {
     const showDropdown = ref(false)
     
-    const toggleDropdown = () => {
+    const toggleDropdown = (event) => {
       showDropdown.value = !showDropdown.value
+      
+      if (showDropdown.value) {
+        // ドロップダウンの位置を動的に計算
+        setTimeout(() => {
+          const dropdown = event.target.closest('.category-tag-container').querySelector('.category-dropdown')
+          const rect = event.target.getBoundingClientRect()
+          dropdown.style.top = rect.bottom + 5 + 'px'
+          dropdown.style.left = rect.left + 'px'
+        }, 0)
+      }
     }
     
     const changeCategory = (category, text) => {
@@ -69,6 +79,7 @@ export default {
 .category-tag-container {
   position: relative;
   display: inline-block;
+  z-index: 1000; // ベースz-indexを追加
 }
 
 .category-tag {
@@ -97,15 +108,15 @@ export default {
 }
 
 .category-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
+  position: fixed; // absoluteからfixedに変更して確実に最前面に
+  top: auto; // 動的に計算される位置
+  left: auto; // 動的に計算される位置
   background: white;
   border: 1px solid #dee2e6;
   border-radius: 5px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
   min-width: 120px;
-  z-index: 9999;
+  z-index: 99999; // より高いz-index
   display: none;
   
   &.show {

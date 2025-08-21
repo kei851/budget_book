@@ -1,11 +1,12 @@
 <template lang="pug">
 .expense-chart
+  .scroll-hint(v-if="showScrollHint") ← → 左右にスクロールできます
   .chart-container
     canvas(ref="chartCanvas")
 </template>
 
 <script>
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import {
   Chart,
   CategoryScale,
@@ -33,26 +34,40 @@ export default {
       type: Object,
       required: true
     },
-    period: {
-      type: String,
-      default: '12ヶ月'
+    isPrivacyMode: {
+      type: Boolean,
+      default: false
     }
   },
   setup(props) {
     const chartCanvas = ref(null)
     const chartInstance = ref(null)
+    const showScrollHint = ref(false)
     
     const createChart = () => {
-      if (!chartCanvas.value) return
+      if (!chartCanvas.value || !props.data) return
       
-      const ctx = chartCanvas.value.getContext('2d')
+      try {
+        // データ数に応じてCanvasサイズを動的計算
+        const monthCount = props.data.labels ? props.data.labels.length : 12
+        const chartWidth = Math.max(1000, monthCount * 80) // 月あたり80px、最低1000px
+        
+        // スクロールヒントの表示判定
+        showScrollHint.value = chartWidth > 1000
+        
+        const ctx = chartCanvas.value.getContext('2d')
       
       chartInstance.value = new Chart(ctx, {
         type: 'bar',
         data: props.data,
         options: {
-          responsive: true,
+          responsive: false,
           maintainAspectRatio: false,
+          width: chartWidth,
+          height: 400,
+          layout: {
+            padding: 20
+          },
           scales: {
             x: {
               stacked: true,
@@ -65,7 +80,7 @@ export default {
               beginAtZero: true,
               ticks: {
                 callback: function(value) {
-                  return '¥' + value.toLocaleString()
+                  return props.isPrivacyMode ? '¥***' : '¥' + value.toLocaleString()
                 }
               }
             }
@@ -85,14 +100,22 @@ export default {
             tooltip: {
               callbacks: {
                 label: function(context) {
-                  return context.dataset.label + ': ¥' + context.parsed.y.toLocaleString()
+                  if (props.isPrivacyMode) {
+                    return context.dataset.label + ': ¥***'
+                  } else {
+                    return context.dataset.label + ': ¥' + context.parsed.y.toLocaleString()
+                  }
                 },
                 footer: function(tooltipItems) {
-                  let total = 0
-                  tooltipItems.forEach(function(tooltipItem) {
-                    total += tooltipItem.parsed.y
-                  })
-                  return '合計: ¥' + total.toLocaleString()
+                  if (props.isPrivacyMode) {
+                    return '合計: ¥***'
+                  } else {
+                    let total = 0
+                    tooltipItems.forEach(function(tooltipItem) {
+                      total += tooltipItem.parsed.y
+                    })
+                    return '合計: ¥' + total.toLocaleString()
+                  }
                 }
               }
             }
@@ -103,13 +126,34 @@ export default {
           }
         }
       })
+      
+      // Chart.js作成後にCanvasサイズを設定
+      if (chartInstance.value) {
+        chartCanvas.value.style.width = chartWidth + 'px'
+        chartCanvas.value.style.height = '400px'
+        chartInstance.value.resize(chartWidth, 400)
+      }
+      
+      } catch (error) {
+        console.error('Chart creation error:', error)
+      }
     }
     
     const updateChart = () => {
       if (chartInstance.value) {
-        chartInstance.value.data = props.data
-        chartInstance.value.update()
+        try {
+          // 既存のチャートを破棄
+          chartInstance.value.destroy()
+        } catch (error) {
+          console.warn('Chart destroy error:', error)
+        }
+        chartInstance.value = null
       }
+      
+      // 新しいチャートを作成
+      nextTick(() => {
+        createChart()
+      })
     }
     
     onMounted(() => {
@@ -118,12 +162,33 @@ export default {
       })
     })
     
-    watch(() => props.data, () => {
-      updateChart()
+    watch(() => props.data, (newData) => {
+      if (newData && newData.labels && newData.datasets) {
+        updateChart()
+      }
     }, { deep: true })
     
+    // プライバシーモード変更時もチャートを再描画
+    watch(() => props.isPrivacyMode, () => {
+      if (props.data && props.data.labels && props.data.datasets) {
+        updateChart()
+      }
+    })
+    
+    onBeforeUnmount(() => {
+      if (chartInstance.value) {
+        try {
+          chartInstance.value.destroy()
+        } catch (error) {
+          console.warn('Chart destroy error on unmount:', error)
+        }
+        chartInstance.value = null
+      }
+    })
+    
     return {
-      chartCanvas
+      chartCanvas,
+      showScrollHint
     }
   }
 }
@@ -131,11 +196,48 @@ export default {
 
 <style lang="scss" scoped>
 .expense-chart {
-  
   .chart-container {
     position: relative;
     height: 400px;
     margin-bottom: 20px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid #ddd; // スクロールエリアを明確化
+    
+    canvas {
+      display: block;
+      // widthとheightはJavaScriptで動的設定
+    }
+  }
+  
+  // スクロールバーのスタイル調整
+  .chart-container::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .chart-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  .chart-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+  }
+  
+  .chart-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+  
+  .scroll-hint {
+    text-align: center;
+    color: #666;
+    font-size: 12px;
+    margin-bottom: 10px;
+    padding: 5px;
+    background: #f0f8ff;
+    border-radius: 4px;
+    border: 1px dashed #4CAF50;
   }
 }
 </style>
