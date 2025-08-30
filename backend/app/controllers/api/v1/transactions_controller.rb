@@ -49,18 +49,32 @@ class Api::V1::TransactionsController < ApplicationController
       # 既存の取引データを削除
       Transaction.delete_all if params[:clear_existing] == 'true'
       
+      # アップロード履歴を作成
+      upload_history = UploadHistory.create!(
+        filename: params[:csv_file].original_filename,
+        upload_date: Time.current,
+        file_hash: Digest::MD5.hexdigest(params[:csv_file].read)
+      )
+      
+      # ファイルポインタをリセット
+      params[:csv_file].rewind
+      
       # CSVインポート実行
-      import_service = CsvImportService.new(params[:csv_file])
+      import_service = CsvImportService.new(params[:csv_file], upload_history)
       result = import_service.import
       
       Rails.logger.info "CSV Import Result: #{result.inspect}"
       
       if result[:success] || result[:imported_count] > 0
+        # アップロード履歴にインポート件数を更新
+        upload_history.update!(imported_count: result[:imported_count])
+        
         render json: {
           message: 'CSVインポートが完了しました',
           imported_count: result[:imported_count],
           total_rows: result[:total_rows],
-          errors: result[:errors]
+          errors: result[:errors],
+          upload_history_id: upload_history.id
         }
       else
         Rails.logger.error "CSV Import Failed: #{result[:errors]}"
@@ -156,9 +170,21 @@ class Api::V1::TransactionsController < ApplicationController
     grouped = {}
     stats.each do |key, value|
       category, color, date = key
-      grouped[category] ||= { name: category, color: color, monthly_data: {} }
-      grouped[category][:monthly_data][date] = value
+      grouped[category] ||= { name: category, color: color, monthly_data: {}, total: 0, count: 0 }
+      grouped[category][:monthly_data][date] = value || 0
+      grouped[category][:total] += (value || 0)
     end
+    
+    # カテゴリ別件数も追加
+    category_counts = Transaction.joins(:category).group('categories.name').count
+    grouped.each do |category_name, data|
+      data[:count] = category_counts[category_name] || 0
+      data[:id] = Category.find_by(name: category_name)&.id
+    end
+    
     grouped.values
+  rescue StandardError => e
+    Rails.logger.error "Format category stats error: #{e.message}"
+    []
   end
 end

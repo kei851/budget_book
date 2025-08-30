@@ -2,6 +2,12 @@ Rails.application.routes.draw do
   # API namespace
   namespace :api do
     namespace :v1 do
+      # カテゴリルールAPI
+      resources :category_rules, only: [:index, :create, :update, :destroy] do
+        collection do
+          patch :bulk_update  # 一括更新
+        end
+      end
       # カテゴリAPI
       resources :categories, only: [:index]
       
@@ -13,6 +19,9 @@ Rails.application.routes.draw do
           get :analytics      # 分析データ
         end
       end
+      
+      # アップロード履歴API
+      resources :upload_histories, only: [:index, :show, :destroy]
     end
   end
 

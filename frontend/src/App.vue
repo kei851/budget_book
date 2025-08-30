@@ -4,15 +4,28 @@
     AppHeader(
       @navigate="handleNavigation" 
       :current-page="currentPage"
+      :isPrivacyMode="isPrivacyMode"
+      @toggle-privacy="togglePrivacyMode"
+      @show-upload-manager="showUploadManager = true"
     )
     main.content
       KeepAlive
         component(
           :is="currentPageComponent"
           :key="currentPage"
+          :isPrivacyMode="isPrivacyMode"
+          :chartNavigationState="chartNavigationState"
           @navigate="handleNavigation"
+          @chart-navigation-updated="handleChartNavigationUpdated"
         )
     AppFooter
+  
+  // アップロード管理モーダル
+  UploadManager(
+    v-if="showUploadManager"
+    @close="showUploadManager = false"
+    @data-updated="handleDataUpdated"
+  )
 </template>
 
 <script>
@@ -21,6 +34,8 @@ import AppHeader from './components/AppHeader.vue'
 import AppFooter from './components/AppFooter.vue'
 import HomePage from './components/HomePage.vue'
 import AnalyticsPage from './components/AnalyticsPage.vue'
+import CategoryRulesPage from './components/CategoryRulesPage.vue'
+import UploadManager from './components/UploadManager.vue'
 
 export default {
   name: 'App',
@@ -29,23 +44,63 @@ export default {
     AppFooter,
     HomePage,
     AnalyticsPage,
+    CategoryRulesPage,
+    UploadManager,
     KeepAlive
   },
   setup() {
     const currentPage = ref('home')
+    const isPrivacyMode = ref(false) // グローバルプライバシーモード
+    const showUploadManager = ref(false)
+    
+    // チャートナビゲーション状態（共有データ）
+    const chartNavigationState = ref({
+      canGoPrevious: false,
+      canGoNext: false,
+      totalMonths: 0,
+      currentOffset: 0,
+      availableMonths: []
+    })
     
     const currentPageComponent = computed(() => {
-      return currentPage.value === 'analytics' ? 'AnalyticsPage' : 'HomePage'
+      switch (currentPage.value) {
+        case 'analytics':
+          return 'AnalyticsPage'
+        case 'category-rules':
+          return 'CategoryRulesPage'
+        default:
+          return 'HomePage'
+      }
     })
     
     const handleNavigation = (page) => {
       currentPage.value = page
     }
     
+    const togglePrivacyMode = () => {
+      isPrivacyMode.value = !isPrivacyMode.value
+    }
+    
+    const handleDataUpdated = () => {
+      // データが更新されたときの処理
+      // 必要に応じて他のコンポーネントにデータ再読み込みを促す
+      console.log('Data updated from UploadManager')
+    }
+    
+    const handleChartNavigationUpdated = (state) => {
+      chartNavigationState.value = state
+    }
+    
     return {
       currentPage,
       currentPageComponent,
-      handleNavigation
+      isPrivacyMode,
+      showUploadManager,
+      chartNavigationState,
+      handleNavigation,
+      togglePrivacyMode,
+      handleDataUpdated,
+      handleChartNavigationUpdated
     }
   }
 }
@@ -56,7 +111,7 @@ export default {
 
 #app {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
   min-height: 100vh;
   padding: 20px;
 }

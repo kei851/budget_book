@@ -3,8 +3,9 @@ class CsvImportService
   require 'csv'
   require 'nkf'
   
-  def initialize(csv_file)
+  def initialize(csv_file, upload_history = nil)
     @csv_file = csv_file
+    @upload_history = upload_history
     @imported_count = 0
     @errors = []
   end
@@ -130,7 +131,8 @@ class CsvImportService
       amount: amount,
       category: category,
       auto_classified: category.present?,
-      raw_data: row.to_h.to_json
+      raw_data: row.to_h.to_json,
+      upload_history: @upload_history
     )
     
     if transaction.save
@@ -201,6 +203,11 @@ class CsvImportService
   end
   
   def classify_category(store_name)
+    # キーワードルールベースの分類を優先
+    category = CategoryRule.find_category_for_store(store_name)
+    return category if category
+    
+    # フォールバック: 従来のサービスを使用
     CategoryClassifierService.new.classify(store_name)
   end
   

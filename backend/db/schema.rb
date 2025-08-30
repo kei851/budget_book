@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_15_115334) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_25_160858) do
   create_table "categories", force: :cascade do |t|
     t.string "name", null: false
     t.string "color", null: false
@@ -34,6 +34,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_15_115334) do
     t.index ["keyword"], name: "index_category_keywords_on_keyword"
   end
 
+  create_table "category_rules", force: :cascade do |t|
+    t.string "keyword", null: false
+    t.integer "category_id", null: false
+    t.integer "priority", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category_id"], name: "index_category_rules_on_category_id"
+    t.index ["keyword"], name: "index_category_rules_on_keyword"
+    t.index ["priority"], name: "index_category_rules_on_priority"
+  end
+
   create_table "transactions", force: :cascade do |t|
     t.integer "category_id"
     t.date "transaction_date", null: false
@@ -46,12 +57,28 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_15_115334) do
     t.boolean "auto_classified", default: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "upload_history_id"
     t.index ["amount"], name: "index_transactions_on_amount"
     t.index ["category_id"], name: "index_transactions_on_category_id"
     t.index ["transaction_date", "amount"], name: "index_transactions_on_transaction_date_and_amount"
     t.index ["transaction_date"], name: "index_transactions_on_transaction_date"
+    t.index ["upload_history_id"], name: "index_transactions_on_upload_history_id"
+  end
+
+  create_table "upload_histories", force: :cascade do |t|
+    t.string "filename", null: false
+    t.datetime "upload_date", null: false
+    t.integer "imported_count", default: 0
+    t.string "file_hash"
+    t.text "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["file_hash"], name: "index_upload_histories_on_file_hash"
+    t.index ["upload_date"], name: "index_upload_histories_on_upload_date"
   end
 
   add_foreign_key "category_keywords", "categories"
+  add_foreign_key "category_rules", "categories"
   add_foreign_key "transactions", "categories"
+  add_foreign_key "transactions", "upload_histories"
 end

@@ -2,27 +2,27 @@
 .analytics-page
   .month-navigation
     .nav-controls
-      button.nav-btn(@click="previousMonth" :disabled="!canGoPrevious || isLoading")
+      button.nav-btn(@click="previousMonth" :disabled="!canGoPrevious || isLoading || isNavigating")
         svg(viewBox="0 0 24 24" width="16" height="16")
           path(d="M15 18l-6-6 6-6v12z")
-      .month-selector(@click="toggleMonthPicker" :class="{ loading: isLoading }")
+      .month-selector(@click="toggleMonthPicker" :class="{ loading: isLoading || isNavigating }")
         span.selected-month {{ formattedCurrentMonth }}
-        span.loading-indicator(v-if="isLoading") 読み込み中...
+        span.loading-indicator(v-if="isLoading || isNavigating") 読み込み中...
         span.dropdown-arrow(v-else)
           svg(viewBox="0 0 24 24" width="14" height="14")
             path(d="M7 14l5-5 5 5z" v-if="showMonthPicker")
             path(d="M7 10l5 5 5-5z" v-else)
-      button.nav-btn(@click="nextMonth" :disabled="!canGoNext || isLoading")
+      button.nav-btn(@click="nextMonth" :disabled="!canGoNext || isLoading || isNavigating")
         svg(viewBox="0 0 24 24" width="16" height="16")
           path(d="M9 18l6-6-6-6v12z")
     
     .month-picker(v-show="showMonthPicker")
       .year-nav-header
-        button.year-btn(@click="previousYear" :disabled="!canGoPreviousYear || isLoading")
+        button.year-btn(@click="previousYear" :disabled="!canGoPreviousYear || isLoading || isNavigating")
           svg(viewBox="0 0 24 24" width="18" height="18")
             path(d="M18 17l-6-5 6-5v10zM12 17l-6-5 6-5v10z")
         .year-display {{ currentYear }}年
-        button.year-btn(@click="nextYear" :disabled="!canGoNextYear || isLoading")
+        button.year-btn(@click="nextYear" :disabled="!canGoNextYear || isLoading || isNavigating")
           svg(viewBox="0 0 24 24" width="18" height="18")
             path(d="M6 17l6-5-6-5v10zM12 17l6-5-6-5v10z")
       .month-grid
@@ -47,16 +47,14 @@
       .stat-title 取引件数
       .stat-value {{ statsData.transactionCount }}件
   
-  .privacy-toggle
-    button.privacy-btn(@click="togglePrivacyMode" :class="{ active: isPrivacyMode }")
-      span.privacy-icon 👁
-      span.privacy-text {{ isPrivacyMode ? '金額表示' : '金額非表示' }}
   
   .analytics-grid
     .chart-section
       .chart-title カテゴリ別支出割合
       .chart-container
-        canvas(ref="categoryPieChart")
+        .pie-chart-wrapper
+          canvas(ref="categoryPieChart")
+          .chart-legend(ref="chartLegend")
     
     .chart-section
       .chart-title 日別支出推移
@@ -115,11 +113,28 @@ export default {
   components: {
     CategoryTag
   },
-  setup() {
+  props: {
+    isPrivacyMode: {
+      type: Boolean,
+      default: false
+    },
+    chartNavigationState: {
+      type: Object,
+      default: () => ({
+        canGoPrevious: false,
+        canGoNext: false,
+        totalMonths: 0,
+        currentOffset: 0,
+        availableMonths: []
+      })
+    }
+  },
+  setup(props) {
     const categoryPieChart = ref(null) // canvas要素
     const dailyLineChart = ref(null)   // canvas要素
     const categoryChartInstance = ref(null) // chart instance
     const dailyChartInstance = ref(null)    // chart instance
+    const chartLegend = ref(null) // 凡例コンテナ
     
     // 月選択の状態
     const currentYear = ref(new Date().getFullYear())
@@ -129,7 +144,7 @@ export default {
     const availableMonths = ref([]) // データがある月の配列
     const initialDataLoaded = ref(false)
     const isLoading = ref(false) // データ読み込み中フラグ
-    const isPrivacyMode = ref(false) // 金額非表示モード
+    const isNavigating = ref(false) // ナビゲーション処理中フラグ
     const dataCache = new Map() // データキャッシュ
     
     // 統計データ
@@ -219,13 +234,59 @@ export default {
     })
     
     const canGoPrevious = computed(() => {
-      // 最初の取引データがある月まで戻れるかチェック
-      return availableMonths.value.length > 0
+      // チャートナビゲーション状態がある場合はそれを優先
+      if (props.chartNavigationState && props.chartNavigationState.availableMonths.length > 0) {
+        const currentMonthKey = `${currentYear.value}/${currentMonth.value.toString().padStart(2, '0')}`
+        const chartMonths = props.chartNavigationState.availableMonths
+        const currentIndex = chartMonths.indexOf(currentMonthKey)
+        
+        if (currentIndex === -1) {
+          // 現在選択中の月がチャートにない場合、より古い月があるかチェック
+          return chartMonths.some(month => month < currentMonthKey)
+        }
+        
+        return currentIndex > 0
+      }
+      
+      // フォールバック: 既存のロジック
+      if (availableMonths.value.length === 0) return false
+      
+      const currentMonthKey = `${currentYear.value}-${currentMonth.value.toString().padStart(2, '0')}`
+      const currentIndex = availableMonths.value.indexOf(currentMonthKey)
+      
+      if (currentIndex === -1) {
+        return availableMonths.value.some(month => month < currentMonthKey)
+      }
+      
+      return currentIndex > 0
     })
     
     const canGoNext = computed(() => {
-      const now = new Date()
-      return !(currentYear.value === now.getFullYear() && currentMonth.value === now.getMonth() + 1)
+      // チャートナビゲーション状態がある場合はそれを優先
+      if (props.chartNavigationState && props.chartNavigationState.availableMonths.length > 0) {
+        const currentMonthKey = `${currentYear.value}/${currentMonth.value.toString().padStart(2, '0')}`
+        const chartMonths = props.chartNavigationState.availableMonths
+        const currentIndex = chartMonths.indexOf(currentMonthKey)
+        
+        if (currentIndex === -1) {
+          // 現在選択中の月がチャートにない場合、より新しい月があるかチェック
+          return chartMonths.some(month => month > currentMonthKey)
+        }
+        
+        return currentIndex < chartMonths.length - 1
+      }
+      
+      // フォールバック: 既存のロジック
+      if (availableMonths.value.length === 0) return false
+      
+      const currentMonthKey = `${currentYear.value}-${currentMonth.value.toString().padStart(2, '0')}`
+      const currentIndex = availableMonths.value.indexOf(currentMonthKey)
+      
+      if (currentIndex === -1) {
+        return availableMonths.value.some(month => month > currentMonthKey)
+      }
+      
+      return currentIndex < availableMonths.value.length - 1
     })
     
     const canGoNextYear = computed(() => {
@@ -234,7 +295,16 @@ export default {
     })
     
     const canGoPreviousYear = computed(() => {
-      // 最も古いデータの年まで戻れるかチェック
+      // チャートナビゲーション状態がある場合はそれを優先
+      if (props.chartNavigationState && props.chartNavigationState.availableMonths.length > 0) {
+        const chartMonths = props.chartNavigationState.availableMonths
+        // チャートの利用可能な月から最も古い年を取得 (YYYY/MM format)
+        const oldestMonthStr = chartMonths[0] // 最初の要素が最も古い
+        const oldestYear = parseInt(oldestMonthStr.split('/')[0])
+        return currentYear.value > oldestYear
+      }
+      
+      // フォールバック: 最も古いデータの年まで戻れるかチェック
       if (availableMonths.value.length === 0) return false
       
       const oldestMonth = availableMonths.value[0] // ソート済み前提
@@ -243,37 +313,59 @@ export default {
     })
     
     const hasDataForMonth = (month) => {
-      // 年選択ピッカーで表示されている年を使用
+      // チャートナビゲーション状態がある場合はそれを優先
+      if (props.chartNavigationState && props.chartNavigationState.availableMonths.length > 0) {
+        const yearToCheck = currentYear.value
+        const monthKey = `${yearToCheck}/${month.toString().padStart(2, '0')}`
+        return props.chartNavigationState.availableMonths.includes(monthKey)
+      }
+      
+      // フォールバック: 既存のロジック
       const yearToCheck = currentYear.value
       const monthKey = `${yearToCheck}-${month.toString().padStart(2, '0')}`
       const hasData = availableMonths.value.includes(monthKey)
-      
       
       return hasData
     }
     
     const previousMonth = async () => {
-      if (isLoading.value) return // 読み込み中の場合は処理しない
+      if (isLoading.value || isNavigating.value) return // 処理中の場合は処理しない
       
-      if (currentMonth.value === 1) {
-        currentMonth.value = 12
-        currentYear.value--
-      } else {
-        currentMonth.value--
+      isNavigating.value = true
+      try {
+        if (currentMonth.value === 1) {
+          currentMonth.value = 12
+          currentYear.value--
+        } else {
+          currentMonth.value--
+        }
+        await loadMonthData()
+      } finally {
+        // デバウンス: 500ms後に無効化
+        setTimeout(() => {
+          isNavigating.value = false
+        }, 500)
       }
-      await loadMonthData()
     }
     
     const nextMonth = async () => {
-      if (isLoading.value) return // 読み込み中の場合は処理しない
+      if (isLoading.value || isNavigating.value) return // 処理中の場合は処理しない
       
-      if (currentMonth.value === 12) {
-        currentMonth.value = 1
-        currentYear.value++
-      } else {
-        currentMonth.value++
+      isNavigating.value = true
+      try {
+        if (currentMonth.value === 12) {
+          currentMonth.value = 1
+          currentYear.value++
+        } else {
+          currentMonth.value++
+        }
+        await loadMonthData()
+      } finally {
+        // デバウンス: 500ms後に無効化
+        setTimeout(() => {
+          isNavigating.value = false
+        }, 500)
       }
-      await loadMonthData()
     }
     
     const toggleMonthPicker = () => {
@@ -282,7 +374,7 @@ export default {
     }
 
     const selectMonth = async (month) => {
-      if (isLoading.value) return // 読み込み中の場合は処理しない
+      if (isLoading.value || isNavigating.value) return // 処理中の場合は処理しない
       
       // 重複リクエスト防止のためにさらに厳密にチェック
       if (currentMonth.value === month) {
@@ -290,29 +382,47 @@ export default {
         return
       }
       
-      currentMonth.value = month
-      showMonthPicker.value = false
-      
+      isNavigating.value = true
       try {
+        currentMonth.value = month
+        showMonthPicker.value = false
         await loadMonthData()
       } catch (error) {
         console.error('月選択エラー:', error)
+      } finally {
+        setTimeout(() => {
+          isNavigating.value = false
+        }, 200)
       }
     }
     
     const previousYear = async () => {
-      if (isLoading.value) return // 読み込み中の場合は処理しない
+      if (isLoading.value || isNavigating.value) return // 処理中の場合は処理しない
       
-      currentYear.value--
-      await loadMonthData()
+      isNavigating.value = true
+      try {
+        currentYear.value--
+        await loadMonthData()
+      } finally {
+        setTimeout(() => {
+          isNavigating.value = false
+        }, 200)
+      }
     }
     
     const nextYear = async () => {
-      if (isLoading.value) return // 読み込み中の場合は処理しない
+      if (isLoading.value || isNavigating.value) return // 処理中の場合は処理しない
       
       if (canGoNextYear.value) {
-        currentYear.value++
-        await loadMonthData()
+        isNavigating.value = true
+        try {
+          currentYear.value++
+          await loadMonthData()
+        } finally {
+          setTimeout(() => {
+            isNavigating.value = false
+          }, 200)
+        }
       }
     }
     
@@ -466,12 +576,55 @@ export default {
       return '￥' + Math.round(amount).toLocaleString()
     }
     
-    const togglePrivacyMode = () => {
-      isPrivacyMode.value = !isPrivacyMode.value
-      // プライバシーモード切り替え時にチャートを再描画
-      updateCharts()
-    }
     
+    const generateCustomLegend = (categoryData) => {
+      const legendContainer = chartLegend.value
+      if (!legendContainer) return
+      
+      // 既存の凡例をクリア
+      legendContainer.innerHTML = ''
+      
+      categoryData.forEach(item => {
+        const legendItem = document.createElement('div')
+        legendItem.className = 'legend-item'
+        legendItem.style.display = 'flex'
+        legendItem.style.flexDirection = 'row'
+        legendItem.style.alignItems = 'center'
+        
+        const colorBox = document.createElement('div')
+        colorBox.className = 'legend-color'
+        colorBox.style.backgroundColor = item.color || '#999999'
+        colorBox.style.width = '14px'
+        colorBox.style.height = '14px'
+        colorBox.style.borderRadius = '3px'
+        colorBox.style.marginRight = '8px'
+        colorBox.style.flexShrink = '0'
+        colorBox.style.display = 'inline-block'
+        
+        const textContainer = document.createElement('div')
+        textContainer.className = 'legend-text-container'
+        
+        const labelText = document.createElement('span')
+        labelText.className = 'legend-label'
+        labelText.textContent = item.category
+        
+        const valueText = document.createElement('span')
+        valueText.className = 'legend-value'
+        if (props.isPrivacyMode) {
+          valueText.textContent = '¥*******'
+        } else {
+          valueText.textContent = '¥' + Math.round(item.total).toLocaleString()
+        }
+        
+        textContainer.appendChild(labelText)
+        textContainer.appendChild(valueText)
+        
+        legendItem.appendChild(colorBox)
+        legendItem.appendChild(textContainer)
+        legendContainer.appendChild(legendItem)
+      })
+    }
+
     // チャート更新処理
     const updateCharts = async () => {
       try {
@@ -480,9 +633,27 @@ export default {
         
         // 円グラフ用データ
         const categoryData = monthlyData.category_totals || []
-        const categoryLabels = categoryData.map(cat => cat.category)
-        const categoryAmounts = categoryData.map(cat => cat.total)
-        const categoryColors = categoryData.map(cat => cat.color)
+        
+        // 全カテゴリを定義（0円でも表示するため）
+        const allCategories = [
+          { category: '投資', color: '#FF6384' },
+          { category: '食費', color: '#4BC0C0' },
+          { category: '日用品費', color: '#9966FF' },
+          { category: '娯楽費', color: '#36A2EB' },
+          { category: '住宅費', color: '#FF9F40' },
+          { category: '交通費', color: '#FFCE56' },
+          { category: 'その他', color: '#C9CBCF' }
+        ]
+        
+        // データがあるカテゴリはAPIデータを使用、ないカテゴリは0で補完
+        const completeData = allCategories.map(defaultCat => {
+          const foundData = categoryData.find(apiCat => apiCat.category === defaultCat.category)
+          return foundData || { ...defaultCat, total: 0 }
+        })
+        
+        const categoryLabels = completeData.map(cat => cat.category)
+        const categoryAmounts = completeData.map(cat => cat.total)
+        const categoryColors = completeData.map(cat => cat.color)
         
         // 円グラフを更新
         if (categoryChartInstance.value) {
@@ -490,7 +661,7 @@ export default {
           categoryChartInstance.value = null
         }
         
-        if (categoryData.length > 0 && categoryPieChart.value) {
+        if (completeData.length > 0 && categoryPieChart.value) {
           const ctx1 = categoryPieChart.value.getContext('2d')
           categoryChartInstance.value = new Chart(ctx1, {
               type: 'doughnut',
@@ -511,8 +682,8 @@ export default {
                   tooltip: {
                     callbacks: {
                       label: function(context) {
-                        if (isPrivacyMode.value) {
-                          return context.label + ': ¥***'
+                        if (props.isPrivacyMode) {
+                          return context.label + ': ¥*******'
                         } else {
                           return context.label + ': ¥' + context.parsed.toLocaleString()
                         }
@@ -522,6 +693,9 @@ export default {
                 }
               }
             })
+          
+          // カスタム凡例を生成
+          generateCustomLegend(completeData)
         }
         
         // 日別推移データ
@@ -553,11 +727,11 @@ export default {
                 datasets: [{
                   label: '支出額',
                   data: dailyAmounts,
-                  borderColor: '#4CAF50',
-                  backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                  borderColor: '#38bdf8',
+                  backgroundColor: 'rgba(56, 189, 248, 0.1)',
                   tension: 0.4,
                   fill: true,
-                  pointBackgroundColor: '#4CAF50',
+                  pointBackgroundColor: '#38bdf8',
                   pointBorderColor: '#fff',
                   pointBorderWidth: 2
                 }]
@@ -570,8 +744,18 @@ export default {
                     beginAtZero: true,
                     ticks: {
                       callback: function(value) {
-                        return isPrivacyMode.value ? '¥***' : '¥' + value.toLocaleString()
-                      }
+                        if (props.isPrivacyMode) {
+                          return '¥*******'
+                        } else {
+                          const formattedValue = '¥' + value.toLocaleString()
+                          return formattedValue.padStart(8, ' ')
+                        }
+                      },
+                      minWidth: 100,
+                      padding: 10
+                    },
+                    afterFit: function(scale) {
+                      scale.width = 100;
                     }
                   }
                 },
@@ -580,8 +764,8 @@ export default {
                   tooltip: {
                     callbacks: {
                       label: function(context) {
-                        if (isPrivacyMode.value) {
-                          return '支出額: ¥***'
+                        if (props.isPrivacyMode) {
+                          return '支出額: ¥*******'
                         } else {
                           return '支出額: ¥' + context.parsed.y.toLocaleString()
                         }
@@ -614,6 +798,7 @@ export default {
     return {
       categoryPieChart,
       dailyLineChart,
+      chartLegend,
       transactions,
       currentYear,
       currentMonth,
@@ -622,6 +807,7 @@ export default {
       statsData,
       initialDataLoaded,
       isLoading,
+      isNavigating,
       formattedCurrentMonth,
       canGoPrevious,
       canGoNext,
@@ -640,8 +826,6 @@ export default {
       selectedCategory,
       sortOrder,
       applyFilters,
-      isPrivacyMode,
-      togglePrivacyMode
     }
   }
 }
@@ -885,22 +1069,22 @@ export default {
 }
 
 .stat-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
   color: white;
   padding: 20px;
   border-radius: 10px;
   text-align: center;
   
   &.red {
-    background: linear-gradient(135deg, #ff7675 0%, #fd79a8 100%);
+    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
   }
   
   &.green {
-    background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
   }
   
   &.orange {
-    background: linear-gradient(135deg, #e17055 0%, #fdcb6e 100%);
+    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
   }
 }
 
@@ -946,6 +1130,98 @@ export default {
 .chart-container {
   position: relative;
   height: 300px;
+  
+  .pie-chart-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: center;
+    height: 100%;
+    
+    canvas {
+      max-width: 200px;
+      max-height: 200px;
+      margin: 0 auto;
+    }
+    
+    .chart-legend {
+      .legend-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+        padding: 6px 8px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        transition: background 0.2s ease;
+        line-height: 1;
+        
+        &:hover {
+          background: #e9ecef;
+        }
+        
+        .legend-color {
+          width: 14px;
+          height: 14px;
+          border-radius: 3px;
+          margin-right: 8px;
+          flex-shrink: 0;
+          display: inline-block;
+          vertical-align: middle;
+        }
+        
+        .legend-text-container {
+          flex: 1;
+          display: inline-flex;
+          justify-content: space-between;
+          align-items: center;
+          vertical-align: middle;
+        }
+        
+        .legend-label {
+          font-weight: 500;
+          color: #333;
+          font-size: 13px;
+        }
+        
+        .legend-value {
+          font-weight: 600;
+          color: #666;
+          font-size: 12px;
+          margin-left: 8px;
+        }
+      }
+    }
+    
+    // モバイル対応
+    @media (max-width: 768px) {
+      .pie-chart-wrapper {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        
+        canvas {
+          max-width: 220px;
+          max-height: 220px;
+        }
+        
+        .chart-legend {
+          .legend-item {
+            margin-bottom: 6px;
+            padding: 5px 6px;
+            
+            .legend-text-container {
+              .legend-label {
+                font-size: 12px;
+              }
+              
+              .legend-value {
+                font-size: 11px;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 .details-section {
@@ -1061,39 +1337,4 @@ export default {
   margin-bottom: 20px;
 }
 
-.privacy-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 25px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9em;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-  }
-  
-  &.active {
-    background: linear-gradient(135deg, #ff7675 0%, #fd79a8 100%);
-    
-    .privacy-icon {
-      filter: brightness(0.8);
-    }
-  }
-  
-  .privacy-icon {
-    font-size: 1.1em;
-    transition: all 0.3s ease;
-  }
-  
-  .privacy-text {
-    font-weight: 600;
-  }
-}
 </style>

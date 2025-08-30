@@ -40,10 +40,6 @@
             td
               span.status.planned 予定
   
-  .privacy-toggle
-    button.privacy-btn(@click="togglePrivacyMode" :class="{ active: isPrivacyMode }")
-      span.privacy-icon 👁
-      span.privacy-text {{ isPrivacyMode ? '金額表示' : '金額非表示' }}
 
   .chart-section
     .chart-header
@@ -52,9 +48,10 @@
     ExpenseChart(
       :data="chartData"
       :isPrivacyMode="isPrivacyMode"
+      @navigation-state="handleNavigationState"
     )
     
-    SummaryCards(:summary="summaryData" :isPrivacyMode="isPrivacyMode" @navigate-to-analytics="$emit('navigate', 'analytics')")
+    SummaryCards(:summary="summaryData" :isPrivacyMode="isPrivacyMode")
 </template>
 
 <script>
@@ -71,16 +68,40 @@ export default {
     ExpenseChart,
     SummaryCards
   },
-  emits: ['navigate'],
-  setup() {
+  props: {
+    isPrivacyMode: {
+      type: Boolean,
+      default: false
+    },
+    chartNavigationState: {
+      type: Object,
+      default: () => ({
+        canGoPrevious: false,
+        canGoNext: false,
+        totalMonths: 0,
+        currentOffset: 0,
+        availableMonths: []
+      })
+    }
+  },
+  emits: ['navigate', 'chart-navigation-updated'],
+  setup(props, { emit }) {
     const loading = ref(false)
     const uploadSuccess = ref(false)
-    const isPrivacyMode = ref(false) // 金額非表示モード
     
     // リアクティブなデータ
     const chartData = ref({
       labels: [],
       datasets: []
+    })
+    
+    // チャートナビゲーション状態
+    const chartNavigationState = ref({
+      canGoPrevious: false,
+      canGoNext: false,
+      totalMonths: 0,
+      currentOffset: 0,
+      availableMonths: []
     })
     
     const summaryData = reactive({
@@ -129,7 +150,7 @@ export default {
           }
         })
         
-        const sortedMonths = Array.from(allMonths).sort().slice(-12)
+        const sortedMonths = Array.from(allMonths).sort() // 全期間のデータを使用
         
         // 各カテゴリのデータセットを作成
         const datasets = analyticsData.category_stats.map(category => ({
@@ -282,9 +303,11 @@ export default {
       }
     }
     
-    
-    const togglePrivacyMode = () => {
-      isPrivacyMode.value = !isPrivacyMode.value
+    // チャートナビゲーション状態の更新ハンドラー
+    const handleNavigationState = (state) => {
+      chartNavigationState.value = state
+      // 親コンポーネント（App.vue）に状態を通知
+      emit('chart-navigation-updated', state)
     }
     
     // 初期データ読み込み
@@ -299,8 +322,8 @@ export default {
       uploadSuccess,
       handleFileUpload,
       handleFolderUpload,
-      isPrivacyMode,
-      togglePrivacyMode
+      chartNavigationState,
+      handleNavigationState
     }
   }
 }
@@ -448,39 +471,4 @@ export default {
   margin: 20px 0;
 }
 
-.privacy-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 25px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9em;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-  }
-  
-  &.active {
-    background: linear-gradient(135deg, #ff7675 0%, #fd79a8 100%);
-    
-    .privacy-icon {
-      filter: brightness(0.8);
-    }
-  }
-  
-  .privacy-icon {
-    font-size: 1.1em;
-    transition: all 0.3s ease;
-  }
-  
-  .privacy-text {
-    font-weight: 600;
-  }
-}
 </style>

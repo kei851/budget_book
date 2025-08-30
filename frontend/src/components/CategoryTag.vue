@@ -1,60 +1,77 @@
 <template lang="pug">
 .category-tag-container
-  span.category-tag(
-    :class="category"
-    @click="toggleDropdown"
-  ) {{ categoryText }}
-    .category-dropdown(:class="{ show: showDropdown }")
-      .category-option(@click="changeCategory('investment', '投資')") 投資
-      .category-option(@click="changeCategory('food', '食費')") 食費
-      .category-option(@click="changeCategory('daily', '日用品費')") 日用品費
-      .category-option(@click="changeCategory('entertainment', '娯楽費')") 娯楽費
-      .category-option(@click="changeCategory('housing', '住宅費')") 住宅費
-      .category-option(@click="changeCategory('transport', '交通費')") 交通費
-      .category-option(@click="changeCategory('other', 'その他')") その他
+  .category-chip(
+    :class="[`category-${category}`, { editing: isEditing }]"
+    @click="toggleEdit"
+  )
+    span.category-text {{ categoryText }}
+    span.edit-icon(v-if="!isEditing") ✏️
+  
+  .category-dropdown(v-if="isEditing" @click.stop)
+    .dropdown-header カテゴリを選択
+    .category-option(
+      v-for="option in categoryOptions"
+      :key="option.value"
+      :class="{ active: option.value === categoryText }"
+      @click="selectCategory(option)"
+    )
+      .option-chip(:class="`category-${option.class}`")
+        span {{ option.text }}
+    .dropdown-footer
+      button.cancel-btn(@click="cancelEdit") キャンセル
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 export default {
   name: 'CategoryTag',
   props: {
     category: {
       type: String,
-      required: true
+      default: 'other'
     },
     categoryText: {
       type: String,
-      required: true
+      default: 'その他'
     }
   },
   emits: ['change-category'],
   setup(props, { emit }) {
-    const showDropdown = ref(false)
+    const isEditing = ref(false)
     
-    const toggleDropdown = (event) => {
-      showDropdown.value = !showDropdown.value
-      
-      if (showDropdown.value) {
-        // ドロップダウンの位置を動的に計算
-        setTimeout(() => {
-          const dropdown = event.target.closest('.category-tag-container').querySelector('.category-dropdown')
-          const rect = event.target.getBoundingClientRect()
-          dropdown.style.top = rect.bottom + 5 + 'px'
-          dropdown.style.left = rect.left + 'px'
-        }, 0)
+    const categoryOptions = [
+      { value: '投資', text: '投資', class: 'investment' },
+      { value: '食費', text: '食費', class: 'food' },
+      { value: '日用品費', text: '日用品費', class: 'daily' },
+      { value: '娯楽費', text: '娯楽費', class: 'entertainment' },
+      { value: '住宅費', text: '住宅費', class: 'housing' },
+      { value: '交通費', text: '交通費', class: 'transport' },
+      { value: 'その他', text: 'その他', class: 'other' }
+    ]
+    
+    const toggleEdit = () => {
+      isEditing.value = !isEditing.value
+    }
+    
+    const selectCategory = (option) => {
+      if (option.text !== props.categoryText) {
+        emit('change-category', {
+          text: option.text,
+          class: option.class
+        })
       }
+      isEditing.value = false
     }
     
-    const changeCategory = (category, text) => {
-      emit('change-category', { category, text })
-      showDropdown.value = false
+    const cancelEdit = () => {
+      isEditing.value = false
     }
     
+    // 外部クリックで編集モードを終了
     const handleClickOutside = (event) => {
       if (!event.target.closest('.category-tag-container')) {
-        showDropdown.value = false
+        isEditing.value = false
       }
     }
     
@@ -62,14 +79,16 @@ export default {
       document.addEventListener('click', handleClickOutside)
     })
     
-    onUnmounted(() => {
+    onBeforeUnmount(() => {
       document.removeEventListener('click', handleClickOutside)
     })
     
     return {
-      showDropdown,
-      toggleDropdown,
-      changeCategory
+      isEditing,
+      categoryOptions,
+      toggleEdit,
+      selectCategory,
+      cancelEdit
     }
   }
 }
@@ -79,64 +98,134 @@ export default {
 .category-tag-container {
   position: relative;
   display: inline-block;
-  z-index: 1000; // ベースz-indexを追加
 }
 
-.category-tag {
-  background: #4CAF50;
-  color: white;
-  padding: 4px 8px;
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
   border-radius: 12px;
   font-size: 0.8em;
+  font-weight: bold;
   cursor: pointer;
-  position: relative;
-  display: inline-block;
   transition: all 0.2s ease;
+  user-select: none;
   
   &:hover {
     opacity: 0.8;
-    transform: scale(1.05);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   }
   
-  &.investment { background: #FF6384; }
-  &.food { background: #4BC0C0; }
-  &.daily { background: #9966FF; }
-  &.entertainment { background: #36A2EB; }
-  &.housing { background: #FF9F40; }
-  &.transport { background: #FFCE56; color: #333; }
-  &.other { background: #C9CBCF; color: #333; }
+  &.editing {
+    box-shadow: 0 0 0 2px #4CAF50;
+  }
+  
+  .edit-icon {
+    font-size: 0.7em;
+    opacity: 0.7;
+  }
 }
 
 .category-dropdown {
-  position: fixed; // absoluteからfixedに変更して確実に最前面に
-  top: auto; // 動的に計算される位置
-  left: auto; // 動的に計算される位置
+  position: absolute;
+  top: 100%;
+  left: 0;
   background: white;
   border: 1px solid #dee2e6;
-  border-radius: 5px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-  min-width: 120px;
-  z-index: 99999; // より高いz-index
-  display: none;
-  
-  &.show {
-    display: block;
-  }
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  z-index: 1000;
+  min-width: 160px;
+  padding: 8px 0;
+  margin-top: 4px;
+}
+
+.dropdown-header {
+  padding: 8px 12px;
+  font-size: 0.8em;
+  font-weight: 600;
+  color: #666;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 4px;
 }
 
 .category-option {
-  padding: 8px 12px;
+  padding: 6px 12px;
   cursor: pointer;
-  border-bottom: 1px solid #f8f9fa;
-  font-size: 0.9em;
-  color: #333;
+  transition: background 0.2s ease;
   
   &:hover {
     background: #f8f9fa;
   }
   
-  &:last-child {
-    border-bottom: none;
+  &.active {
+    background: #e8f5e8;
   }
+}
+
+.option-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+
+.dropdown-footer {
+  border-top: 1px solid #f0f0f0;
+  padding: 8px 12px;
+  margin-top: 4px;
+}
+
+.cancel-btn {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  cursor: pointer;
+  
+  &:hover {
+    background: #e9ecef;
+  }
+}
+
+// カテゴリ別の色設定（DBのseedsと同じ色に統一）
+.category-investment {
+  background: #FF6384;
+  color: white;
+}
+
+.category-food {
+  background: #4BC0C0;
+  color: white;
+}
+
+.category-daily {
+  background: #9966FF;
+  color: white;
+}
+
+.category-entertainment {
+  background: #36A2EB;
+  color: white;
+}
+
+.category-housing {
+  background: #FF9F40;
+  color: white;
+}
+
+.category-transport {
+  background: #FFCE56;
+  color: black;
+}
+
+.category-other {
+  background: #C9CBCF;
+  color: black;
 }
 </style>

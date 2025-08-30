@@ -15,9 +15,6 @@
   .summary-card.summary-card--orange
     .summary-card__title 処理データ数
     .summary-card__value {{ summary.dataCount }}件
-
-.analytics-button-container
-  button.analytics-btn(@click="$emit('navigate-to-analytics')") 📊 詳細分析を見る
 </template>
 
 <script>
@@ -39,7 +36,6 @@ export default {
       default: false
     }
   },
-  emits: ['navigate-to-analytics'],
   setup(props) {
     const formatNumber = (num) => {
       return num.toLocaleString()
@@ -67,19 +63,19 @@ export default {
   text-align: center;
   
   &--red {
-    background: linear-gradient(135deg, #ff7675 0%, #fd79a8 100%);
+    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
   }
   
   &--green {
-    background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
   }
   
   &--blue {
-    background: linear-gradient(135deg, #0984e3 0%, #74b9ff 100%);
+    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
   }
   
   &--orange {
-    background: linear-gradient(135deg, #e17055 0%, #fdcb6e 100%);
+    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
   }
   
   &__title {
@@ -91,28 +87,6 @@ export default {
   &__value {
     font-size: 2em;
     font-weight: bold;
-  }
-}
-
-.analytics-button-container {
-  text-align: center;
-  margin-top: 30px;
-}
-
-.analytics-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 15px 30px;
-  border-radius: 25px;
-  font-size: 1.1em;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
   }
 }
 </style>

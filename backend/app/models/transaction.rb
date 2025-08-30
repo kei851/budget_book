@@ -1,5 +1,6 @@
 class Transaction < ApplicationRecord
   belongs_to :category, optional: true  # 未分類の取引も許可
+  belongs_to :upload_history, optional: true
   
   validates :transaction_date, presence: true
   validates :store_name, presence: true, length: { maximum: 500 }
