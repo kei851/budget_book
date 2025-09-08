@@ -2,7 +2,7 @@
 
 **バージョン**: 1.0  
 **作成日**: 2025年8月10日  
-**技術スタック**: Vue.js 3 + Pug + SCSS + Rails 7 API + PostgreSQL
+**技術スタック**: Vue.js 3 + Pug + SCSS + Rails 8 API + SQLite
 
 ## 1. プロジェクト全体構成
 
@@ -277,12 +277,12 @@ PUT  /api/v1/users/me   # ユーザー更新
 - **Pug**: テンプレート効率化、構造化HTML
 - **SCSS**: 変数・mixin、コンポーネント指向CSS
 - **Rails**: API設計、認証、サービス層
-- **PostgreSQL**: リレーション設計、パフォーマンス
+- **SQLite**: 軽量データベース、ローカル開発
 - **Figma**: デザインシステム、プロトタイピング
 
 ## 8. デプロイ・運用（将来）
 
 - **フロントエンド**: Vercel / Netlify
 - **バックエンド**: Heroku / Railway
-- **データベース**: PostgreSQL (Heroku Postgres)
+- **データベース**: SQLite (ローカル) / PostgreSQL (本番環境)
 - **CI/CD**: GitHub Actions
