@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_25_160858) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_12_144827) do
   create_table "categories", force: :cascade do |t|
     t.string "name", null: false
     t.string "color", null: false
@@ -73,6 +73,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_25_160858) do
     t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "data_source_type", default: "rakuten", null: false
     t.index ["file_hash"], name: "index_upload_histories_on_file_hash"
     t.index ["upload_date"], name: "index_upload_histories_on_upload_date"
   end

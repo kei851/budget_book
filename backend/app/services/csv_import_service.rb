@@ -5,12 +5,13 @@ class CsvImportService
   require 'csv'
   require 'nkf'
   
-  # initializeメソッドはcsv_fileとupload_historyを受け取り、4つの関数を初期化する
+  # initializeメソッドはcsv_fileとupload_historyを受け取り、インスタンス変数を初期化する
   def initialize(csv_file, upload_history = nil)
     @csv_file = csv_file
     @upload_history = upload_history
     @imported_count = 0
     @errors = []
+    @data_source_type = 'rakuten'  # デフォルトは楽天カード
   end
   
   #importメソッドはCSVファイルを解析し、データベースに保存する
@@ -48,12 +49,30 @@ class CsvImportService
           content = NKF.nkf('-w -S', content.force_encoding('BINARY'))
         end
       end
-      
+
+      # 半角カタカナを全角カタカナに変換（-Z1オプション）
+      # これにより、キーワードマッチングの精度が向上する
+      content = NKF.nkf('-w -Z1', content)
+
       # 改行コードを統一し、余分な空行を除去
       content = content.gsub(/\r\n/, "\n").gsub(/\r/, "\n")
       content = content.strip
-      
-      # CSVパース設定（楽天カード用）- より柔軟な設定
+
+      # データソースを事前判定（エポスカードの1行目スキップのため）
+      lines = content.split("\n")
+      first_line = lines[0] || ""
+      second_line = lines[1] || ""
+
+      if first_line.include?('ご利用年月日') || second_line.include?('ご利用年月日')
+        @data_source_type = 'epos'
+        # エポスカードは1行目がタイトル行なのでスキップ
+        lines.shift
+        content = lines.join("\n")
+      elsif first_line.include?('利用日')
+        @data_source_type = 'rakuten'
+      end
+
+      # CSVパース設定 - より柔軟な設定
       csv_options = {
         headers: true,
         encoding: 'UTF-8',
@@ -64,7 +83,13 @@ class CsvImportService
       }
       #CSV.parseはCSVファイルを解析するためのメソッド
       csv_data = CSV.parse(content, **csv_options)
-      
+
+      # データソースを判定して保存
+      @data_source_type = detect_data_source(csv_data.headers)
+      if @upload_history
+        @upload_history.update!(data_source_type: @data_source_type)
+      end
+
       # データが空の場合の処理
       if csv_data.empty?
         return {
@@ -106,16 +131,44 @@ class CsvImportService
   
   private
 
+  # CSVのヘッダー情報からデータソース（カード会社）を判定する
+  def detect_data_source(headers)
+    if headers.include?('利用日')
+      'rakuten'
+    elsif headers.include?('ご利用年月日')
+      'epos'
+    else
+      'rakuten' # デフォルトは楽天カードとして処理
+    end
+  end
+
+  # データソースに応じた列名を取得
+  def get_column_name(column_type)
+    case column_type
+    when :date
+      @data_source_type == 'epos' ? 'ご利用年月日' : '利用日'
+    when :store
+      @data_source_type == 'epos' ? 'ご利用場所' : '利用店名・商品名'
+    when :amount
+      @data_source_type == 'epos' ? 'ご利用金額（キャッシングでは元金になります）' : '利用金額'
+    when :user
+      @data_source_type == 'epos' ? nil : '利用者'  # エポスカードには利用者列がない
+    when :payment_method
+      @data_source_type == 'epos' ? '支払区分' : '支払方法'
+    end
+  end
+
   #import_transactionメソッドはCSVファイルを解析し、データベースに保存する
   def import_transaction(row, row_number)
-    # 楽天カードCSVの具体的な構造に基づいて処理
-    # "利用日","利用店名・商品名","利用者","支払方法","利用金額","支払手数料","支払総額","7月支払金額","8月繰越残高","新規サイン"
-    
-    transaction_date = parse_date(row['利用日'])
-    store_name = row['利用店名・商品名']&.strip
-    amount = parse_amount(row['利用金額'])
-    user_name = row['利用者']&.strip
-    payment_method = row['支払方法']&.strip
+    # データソースに応じた列名を使用してCSVを解析
+    # 楽天カード: "利用日","利用店名・商品名","利用者","支払方法","利用金額"
+    # エポスカード: "ご利用年月日","ご利用場所","ご利用金額（キャッシングでは元金になります）","支払区分"
+
+    transaction_date = parse_date(row[get_column_name(:date)])
+    store_name = row[get_column_name(:store)]&.strip
+    amount = parse_amount(row[get_column_name(:amount)])
+    user_name = row[get_column_name(:user)]&.strip
+    payment_method = row[get_column_name(:payment_method)]&.strip
     
     # デバッグ情報
     Rails.logger.info "Row #{row_number}: date=#{transaction_date}, store=#{store_name}, amount=#{amount}"

@@ -73,19 +73,38 @@ class Api::V1::TransactionsController < ApplicationController
     begin
       # インポート開始をログに記録する（ファイル名を含む）
       Rails.logger.info "CSV Import Started: #{params[:csv_file].original_filename}"
-      
+
+      # ファイルのハッシュ値を計算（重複チェック用）
+      file_hash = Digest::MD5.hexdigest(params[:csv_file].read)
+      params[:csv_file].rewind  # ファイル読み込み位置をリセット
+
+      # 同じファイルが既にアップロード済みかチェック
+      existing_upload = UploadHistory.find_by(file_hash: file_hash)
+      if existing_upload
+        Rails.logger.info "Duplicate file detected: #{params[:csv_file].original_filename} (already uploaded as #{existing_upload.filename})"
+        render json: {
+          error: 'このファイルは既にアップロード済みです',
+          existing_upload: {
+            filename: existing_upload.filename,
+            upload_date: existing_upload.upload_date,
+            imported_count: existing_upload.imported_count
+          }
+        }, status: :unprocessable_entity
+        return
+      end
+
       # 既存データクリアオプション：パラメータがtrueの場合のみ実行する
       # 全ての既存取引データを削除する
       Transaction.delete_all if params[:clear_existing] == 'true'
-      
+
       # アップロード履歴レコードを新規作成する
       upload_history = UploadHistory.create!(
         # アップロードされたファイルの元のファイル名を保存する
         filename: params[:csv_file].original_filename,
         # 現在の日時をアップロード日時として保存する
         upload_date: Time.current,
-        # ファイル内容のMD5ハッシュ値を計算して重複チェック用に保存する
-        file_hash: Digest::MD5.hexdigest(params[:csv_file].read)
+        # ファイル内容のMD5ハッシュ値を保存する
+        file_hash: file_hash
       )
       
       # ファイル読み込み位置を先頭にリセットする（ハッシュ計算で末尾まで読んだため）
@@ -273,8 +292,11 @@ class Api::V1::TransactionsController < ApplicationController
       data[:id] = Category.find_by(name: category_name)&.id
     end
     
-    # グループ化されたハッシュの値部分（配列）を返却する
-    grouped.values
+    # グラフの積み上げ順序を定義（上から下へ - Chart.jsは配列の最初が上になる）
+    display_order = ['その他', '投資', '住宅費', '交通費', '日用品費', '食費', '娯楽費']
+
+    # 定義された順序でカテゴリをソートして返却する
+    grouped.values.sort_by { |cat| display_order.index(cat[:name]) || 999 }
   # 予期しないエラーが発生した場合の例外処理
   rescue StandardError => e
     # エラー情報をログに記録し、アプリケーションの継続性を保つ

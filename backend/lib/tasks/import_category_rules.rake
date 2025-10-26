@@ -12,7 +12,7 @@ namespace :db do
     
     # 既存のキーワードルールを削除
     puts "既存のキーワードルールを削除中..."
-    CategoryRule.delete_all
+    CategoryKeyword.delete_all
     
     # カテゴリの名前とIDのマッピングを作成
     category_mapping = Category.all.map { |c| [c.name, c.id] }.to_h
@@ -52,7 +52,7 @@ namespace :db do
       
       # キーワードルールを作成
       begin
-        CategoryRule.create!(
+        CategoryKeyword.create!(
           keyword: normalized_keyword,
           category_id: category_id,
           priority: priority
@@ -72,6 +72,6 @@ namespace :db do
       errors.each { |error| puts "  - #{error}" }
     end
     
-    puts "\n現在のキーワードルール件数: #{CategoryRule.count}"
+    puts "\n現在のキーワードルール件数: #{CategoryKeyword.count}"
   end
 end
