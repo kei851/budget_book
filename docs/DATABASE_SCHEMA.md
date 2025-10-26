@@ -142,44 +142,36 @@ graph TD
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
 graph TB
-    subgraph Import["CSV インポート処理"]
-        File["CSV ファイル"]
-        Parse["Parse & Classify"]
-        ValidTx["Validate"]
+    subgraph Import["CSV インポート"]
+        File["CSV"]
+        Parse["解析"]
+        Rule["ルール照合"]
     end
 
-    subgraph Storage["データ保存"]
-        UH["UploadHistory<br/>作成"]
-        TX["Transaction<br/>作成"]
-        RuleRef["CategoryRule<br/>参照"]
+    subgraph Save["保存"]
+        UH["UploadHistory"]
+        TX["Transaction"]
     end
 
-    subgraph Query["データ検索・集計"]
-        GetTx["Transaction 取得"]
-        GroupCat["カテゴリで<br/>グループ化"]
-        Sum["金額を合計"]
+    subgraph Aggregate["集計"]
+        Get["取得"]
+        Group["グループ化"]
+        Total["合計"]
     end
 
     File --> Parse
-    Parse --> RuleRef
-    RuleRef --> ValidTx
-    ValidTx --> UH
-    ValidTx --> TX
-
-    GetTx --> GroupCat
-    TX -->|SELECT| GetTx
-    GroupCat -->|JOIN categories| GroupCat
-    GroupCat --> Sum
+    Parse --> Rule
+    Rule --> Save
+    Save --> Aggregate
 
     style File fill:#c8e6c9
     style Parse fill:#fff9c4
-    style RuleRef fill:#f3e5f5
-    style ValidTx fill:#c8e6c9
+    style Rule fill:#f3e5f5
     style UH fill:#f8bbd0
     style TX fill:#b3e5fc
-    style GetTx fill:#b3e5fc
-    style GroupCat fill:#ffe0b2
-    style Sum fill:#ffb74d
+    style Get fill:#b3e5fc
+    style Group fill:#ffe0b2
+    style Total fill:#ffb74d
 ```
 
 ## インデックス戦略
