@@ -153,14 +153,15 @@ graph TB
     HP -->|api.getMonthlyData<br/>year=2024, month=10| GetMonth
     GetMonth -->|HTTP Request| Ctrl
 
-    Ctrl -->|SQL: SELECT cat.name, cat.color,<br/>SUM(tx.amount)<br/>FROM transactions tx<br/>JOIN categories cat<br/>GROUP BY cat.id, cat.color| Query
+    Ctrl -->|SQL Query| Query
 
     Query -->|SELECT| TX
     Query -->|JOIN| CAT
-    TX & CAT -->|query result| Query
+    TX -->|結果| Query
+    CAT -->|結果| Query
 
-    Query -->|result| Ctrl
-    Ctrl -->|JSON: {<br/>category_totals: [...],<br/>monthly_totals: {...},<br/>transaction_count: 86<br/>}| GetMonth
+    Query -->|結果| Ctrl
+    Ctrl -->|JSON Response| GetMonth
 
     GetMonth -->|response| Frontend
 
