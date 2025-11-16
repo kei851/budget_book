@@ -57,6 +57,7 @@ Vue.js + Rails API + SQLiteでフルスタック実装完了。
 ```
 budget_book/
 ├── README.md                 # このファイル
+├── CHANGELOG.md              # 更新情報
 ├── docs/                     # 📋 ドキュメント
 │   ├── requirement_definition.md  # 要件定義書
 │   ├── functional_spec.md         # 機能仕様書
@@ -198,6 +199,13 @@ cp data/rakuten_card/enavi202407(3013).csv /tmp/test.csv
 ### パフォーマンス
 - **インポート速度**: 86件/数秒
 - **成功率**: 98.9% (86/87件)
+
+## 📝 更新情報
+
+- 2024-08-20: 楽天カードに加えてエポスカードCSVの自動判定・列マッピングを実装し、関連UI/ドキュメントを両対応化。
+- 2024-07-31: Budget Book v1 をリリース（楽天カードCSVインポートと可視化機能を公開）。
+
+より詳しい履歴は [CHANGELOG.md](CHANGELOG.md) を参照してください。
 - **API応答時間**: 50-100ms
 
 ## 📈 今後の拡張予定
