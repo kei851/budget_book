@@ -1,606 +1,267 @@
 <template lang="pug">
-//- メインのホームページコンテナ
 .home-page
-  //- ファイルアップロードと対応形式を表示するコンテナ
-  .upload-container
-    //- ファイルアップロード部分
-    .upload-section
-      //- アップロードアイコン
+  .upload-grid
+    .upload-area
       .upload-icon 📁
-      //- アップロード説明テキスト
-      .upload-text 右の対応済みの形式のファイルをアップロード
-      //- ファイルアップロードコンポーネント
-      FileUpload(
-        @file-uploaded="handleFileUpload"
-        @folder-uploaded="handleFolderUpload"
-        :loading="loading"
-      )
+      p.upload-label 対応形式のCSVファイルをアップロード
+      FileUpload(@file-uploaded="handleFileUpload" @folder-uploaded="handleFolderUpload" :loading="loading")
 
-    //- 対応ファイル形式テーブル部分
-    .format-table-section
-      //- セクションタイトル
-      h3 対応ファイル形式
-      //- 対応形式テーブル
+    .format-card
+      h3.format-title 対応ファイル形式
       table.format-table
-        //- テーブルヘッダー
         thead
-          //- ヘッダー行
           tr
-            //- 取引媒体カラム
             th 取引媒体
-            //- 形式カラム
             th 形式
-            //- 対応状況カラム
             th 対応状況
-        //- テーブルボディ
         tbody
-          //- 楽天カード行
           tr
-            //- 楽天カード名
             td 楽天カード
-            //- CSVファイル形式
             td CSV
-            //- 対応状況セル
-            td
-              //- 対応済みステータス
-              span.status.supported ✓ 対応
-          //- 楽天銀行行
+            td: span.badge.badge-supported ✓ 対応
           tr
-            //- 楽天銀行名
             td 楽天銀行
-            //- CSVファイル形式
             td CSV
-            //- 対応状況セル
-            td
-              //- 予定ステータス
-              span.status.planned 予定
-          //- エポスカード行
+            td: span.badge.badge-planned 予定
           tr
-            //- エポスカード名
             td エポスカード
-            //- CSVファイル形式
             td CSV
-            //- 対応状況セル
-            td
-              //- 対応済みステータス
-              span.status.supported ✓ 対応
-          //- PayPay行
+            td: span.badge.badge-supported ✓ 対応
           tr
-            //- PayPay名
             td PayPay
-            //- CSVファイル形式
             td CSV
-            //- 対応状況セル
-            td
-              //- 予定ステータス
-              span.status.planned 予定
+            td: span.badge.badge-planned 予定
 
-
-  //- グラフとサマリーを表示するセクション
-  .chart-section
-    //- グラフヘッダー
-    .chart-header
-      //- グラフタイトル
-      .chart-title 月毎支出グラフ（12ヶ月）
-
-    //- 支出グラフコンポーネント
-    ExpenseChart(
-      :data="chartData"
-      :isPrivacyMode="isPrivacyMode"
-      @navigation-state="handleNavigationState"
-    )
-
-    //- サマリーカードコンポーネント
+  .chart-card
+    .chart-card-header
+      h2.section-title 月別支出（12ヶ月）
+    ExpenseChart(:data="chartData" :isPrivacyMode="isPrivacyMode" @navigation-state="handleNavigationState")
     SummaryCards(:summary="summaryData" :isPrivacyMode="isPrivacyMode")
 </template>
 
 <script>
-// Vue 3のComposition APIとリアクティブな機能をインポート
 import { ref, reactive, onMounted } from 'vue'
-// ファイルアップロードコンポーネントをインポート
 import FileUpload from './FileUpload.vue'
-// 支出グラフコンポーネントをインポート
 import ExpenseChart from './ExpenseChart.vue'
-// サマリーカードコンポーネントをインポート
 import SummaryCards from './SummaryCards.vue'
-// API通信サービスをインポート
 import apiService from '../services/api.js'
 
 export default {
-  // コンポーネント名を定義
   name: 'HomePage',
-  // 使用するコンポーネントを登録
-  components: {
-    FileUpload,
-    ExpenseChart,
-    SummaryCards
-  },
-  // 親コンポーネントから受け取るプロパティを定義
+  components: { FileUpload, ExpenseChart, SummaryCards },
   props: {
-    // プライバシーモードのON/OFF状態
-    isPrivacyMode: {
-      type: Boolean,
-      default: false
-    },
-    // チャートナビゲーション状態
+    isPrivacyMode: { type: Boolean, default: false },
     chartNavigationState: {
       type: Object,
-      default: () => ({
-        canGoPrevious: false,
-        canGoNext: false,
-        totalMonths: 0,
-        currentOffset: 0,
-        availableMonths: []
-      })
+      default: () => ({ canGoPrevious: false, canGoNext: false, totalMonths: 0, currentOffset: 0, availableMonths: [] })
     }
   },
-  // 親コンポーネントに送信するイベントを定義
   emits: ['navigate', 'chart-navigation-updated'],
-  // Composition APIのセットアップ関数
   setup(props, { emit }) {
-    // ローディング状態のリアクティブ変数
     const loading = ref(false)
-    // アップロード成功状態のリアクティブ変数
-    const uploadSuccess = ref(false)
+    const chartData = ref({ labels: [], datasets: [] })
+    const summaryData = reactive({ thisMonth: 0, monthlyAverage: 0, maxMonth: 0, dataCount: 0 })
 
-    // チャートデータのリアクティブな変数
-    const chartData = ref({
-      labels: [],
-      datasets: []
-    })
-
-    // チャートナビゲーション状態のリアクティブな変数
-    const chartNavigationState = ref({
-      canGoPrevious: false,
-      canGoNext: false,
-      totalMonths: 0,
-      currentOffset: 0,
-      availableMonths: []
-    })
-
-    // サマリーデータのリアクティブなオブジェクト
-    const summaryData = reactive({
-      thisMonth: 0,
-      monthlyAverage: 0,
-      maxMonth: 0,
-      dataCount: 0
-    })
-
-    // APIからデータを読み込む非同期関数
     const loadData = async () => {
       try {
-        // 月次データを取得
         const monthlyData = await apiService.getMonthlyData()
-        // チャートデータを別途APIから取得して更新
         await updateChartData()
-        // サマリーデータを更新
         updateSummaryData(monthlyData)
       } catch (error) {
-        // エラーログを出力
         console.error('データ読み込みエラー:', error)
-        // データがない場合は空のグラフを表示
-        chartData.value = {
-          labels: [],
-          datasets: []
-        }
+        chartData.value = { labels: [], datasets: [] }
       }
     }
 
-    // チャートデータを更新する非同期関数
     const updateChartData = async () => {
       try {
-        // 分析データを取得
         const analyticsData = await apiService.getAnalyticsData()
+        if (!analyticsData.category_stats?.length) { chartData.value = { labels: [], datasets: [] }; return }
 
-        // カテゴリ統計がない場合は空のチャートデータを設定
-        if (!analyticsData.category_stats || analyticsData.category_stats.length === 0) {
-          chartData.value = {
-            labels: [],
-            datasets: []
-          }
-          return
-        }
-
-        // 全ての月データを収集するためのSet
         const allMonths = new Set()
-        // 各カテゴリの月次データから月を収集
-        analyticsData.category_stats.forEach(category => {
-          if (category.monthly_data) {
-            Object.keys(category.monthly_data).forEach(month => {
-              allMonths.add(month)
-            })
-          }
+        analyticsData.category_stats.forEach(c => {
+          if (c.monthly_data) Object.keys(c.monthly_data).forEach(m => allMonths.add(m))
         })
-
-        // 月をソートして全期間のデータを使用
         const sortedMonths = Array.from(allMonths).sort()
 
-        // 各カテゴリのデータセットを作成
-        const datasets = analyticsData.category_stats.map(category => ({
-          label: category.name,
-          data: sortedMonths.map(month => {
-            const value = category.monthly_data[month]
-            return value ? Math.round(parseFloat(value)) : 0
-          }),
-          backgroundColor: category.color,
-          borderWidth: 0
-        }))
-
-        // チャートデータを設定
         chartData.value = {
-          labels: sortedMonths.map(monthKey => {
-            const [year, month] = monthKey.split('-')
-            return `${year}/${month}`
-          }),
-          // 0より大きい値を含むデータセットのみフィルタリング
-          datasets: datasets.filter(dataset =>
-            dataset.data.some(val => val > 0)
-          )
+          labels: sortedMonths.map(m => { const [y, mo] = m.split('-'); return `${y}/${mo}` }),
+          datasets: analyticsData.category_stats.map(c => ({
+            label: c.name,
+            data: sortedMonths.map(m => c.monthly_data[m] ? Math.round(parseFloat(c.monthly_data[m])) : 0),
+            backgroundColor: c.color,
+            borderWidth: 0
+          })).filter(d => d.data.some(v => v > 0))
         }
-
       } catch (error) {
-        // エラーログを出力
         console.error('チャートデータ更新エラー:', error)
-        // エラー時は空のチャートデータを設定
-        chartData.value = {
-          labels: [],
-          datasets: []
-        }
+        chartData.value = { labels: [], datasets: [] }
       }
     }
 
-    // サマリーデータを更新する関数
     const updateSummaryData = (data) => {
-      // 現在の月と年を取得
-      const currentMonth = new Date().getMonth() + 1
-      const currentYear = new Date().getFullYear()
-      // 現在月のキーを作成
-      const currentMonthKey = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`
-
-      // 今月の支出を設定
-      summaryData.thisMonth = data.monthly_totals[currentMonthKey]
-        ? Math.round(parseFloat(data.monthly_totals[currentMonthKey])) : 0
-
-      // 月次データから有効な値のみを抽出
-      const monthlyValues = Object.values(data.monthly_totals)
-        .map(val => parseFloat(val))
-        .filter(val => !isNaN(val) && val > 0)
-
-      // 月平均支出を計算
-      summaryData.monthlyAverage = monthlyValues.length > 0
-        ? Math.round(monthlyValues.reduce((a, b) => a + b, 0) / monthlyValues.length)
-        : 0
-      // 最大月支出を設定
-      summaryData.maxMonth = monthlyValues.length > 0 ? Math.round(Math.max(...monthlyValues)) : 0
-      // データ件数を設定
+      const now = new Date()
+      const key = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-01`
+      summaryData.thisMonth = data.monthly_totals[key] ? Math.round(parseFloat(data.monthly_totals[key])) : 0
+      const vals = Object.values(data.monthly_totals).map(parseFloat).filter(v => !isNaN(v) && v > 0)
+      summaryData.monthlyAverage = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0
+      summaryData.maxMonth = vals.length ? Math.round(Math.max(...vals)) : 0
       summaryData.dataCount = data.transaction_count || 0
     }
 
-    // ファイルアップロード処理の非同期関数
     const handleFileUpload = async (file) => {
-      // ローディング状態を開始
       loading.value = true
-      // アップロード成功状態をリセット
-      uploadSuccess.value = false
-
       try {
-        // アップロード開始ログ
-        console.log('ファイルアップロード開始:', file.name)
-
-        // CSVファイルをアップロード（既存データは保持、重複チェックあり）
         const result = await apiService.uploadCsv(file, false)
-        // アップロード完了ログ
-        console.log('アップロード完了:', result)
-
-        // インポートされたデータが1件以上ある場合
         if (result.imported_count > 0) {
-          // アップロード成功状態を設定
-          uploadSuccess.value = true
-          // 成功メッセージを表示
-          alert(`${result.imported_count}件のデータを正常にインポートしました！`)
-
-          // データを再読み込み
+          alert(`${result.imported_count}件のデータをインポートしました！`)
           await loadData()
         } else {
-          // データがない場合の警告メッセージ
           alert('インポートできるデータが見つかりませんでした。')
         }
-
-        // エラーがある場合は警告ログを出力
-        if (result.errors && result.errors.length > 0) {
-          console.warn('インポート時のエラー:', result.errors)
-        }
-
       } catch (error) {
-        // エラーログとアラートを表示
-        console.error('アップロードエラー:', error)
         alert(`アップロードに失敗しました: ${error.message}`)
       } finally {
-        // ローディング状態を終了
         loading.value = false
       }
     }
 
-    // フォルダーアップロード処理の非同期関数
-    const handleFolderUpload = async (data) => {
-      // フォルダーアップロード開始ログ
-      console.log('フォルダーアップロード開始:', data.files.length, '個のファイル')
-
-      // ローディング状態を開始
+    const handleFolderUpload = async ({ files, uploadProgress }) => {
       loading.value = true
-      // ファイル配列を取得
-      const files = data.files
-      // アップロード進捗オブジェクトを取得
-      const uploadProgress = data.uploadProgress
-      // 結果配列を初期化
       const results = []
-
-      // 各ファイルを順次処理
       for (let i = 0; i < files.length; i++) {
-        const file = files[i]
-        // 現在の進捗を更新
         uploadProgress.current = i + 1
-
         try {
-          // ファイル処理ログ
-          console.log(`ファイル ${i + 1}/${files.length} 処理中: ${file.name}`)
-
-          // 最初のファイルのみ既存データを削除、残りは追加
-          const clearExisting = i === 0
-          // CSVファイルをアップロード
-          const result = await apiService.uploadCsv(file, clearExisting)
-          // 完了ログ
-          console.log(`${file.name} 完了:`, result)
-          console.log('result.imported_count:', result.imported_count)
-
-          // 成功結果を配列に追加
-          results.push({
-            file: file.name,
-            status: 'success',
-            importedCount: result.imported_count || 0
-          })
-
-          // 300ms待機してサーバー負荷を軽減
-          await new Promise(resolve => setTimeout(resolve, 300))
-
+          const result = await apiService.uploadCsv(files[i], i === 0)
+          results.push({ status: 'success', importedCount: result.imported_count || 0 })
+          await new Promise(r => setTimeout(r, 300))
         } catch (error) {
-          // エラーログ
-          console.error(`${file.name} の処理でエラー:`, error)
-          // エラー結果を配列に追加
-          results.push({
-            file: file.name,
-            status: 'error',
-            error: error.message
-          })
+          const alreadyUploaded = error.message?.includes('既にアップロード済み')
+          results.push({ status: alreadyUploaded ? 'skipped' : 'error' })
         }
       }
-
-      // 進捗をリセット
-      uploadProgress.current = 0
-      uploadProgress.total = 0
-      // ローディング状態を終了
+      uploadProgress.current = 0; uploadProgress.total = 0
       loading.value = false
 
-      // 結果を集計
-      const successCount = results.filter(r => r.status === 'success').length
-      const errorCount = results.filter(r => r.status === 'error').length
-      const totalImported = results
-        .filter(r => r.status === 'success')
-        .reduce((sum, r) => sum + r.importedCount, 0)
-
-      // 完了結果ログ
-      console.log('フォルダーアップロード完了結果:', {
-        成功ファイル数: successCount,
-        エラーファイル数: errorCount,
-        合計インポート件数: totalImported,
-        詳細: results
-      })
-
-      // 成功した処理がある場合
-      if (successCount > 0 || totalImported > 0) {
-        // 成功メッセージを表示
-        alert(`${successCount}個のファイルを処理完了！\n合計 ${totalImported}件のデータをインポートしました。${errorCount > 0 ? `\n${errorCount}個のファイルは空またはエラーでした。` : ''}`)
-
-        // データを再読み込み
+      const success = results.filter(r => r.status === 'success')
+      const skipped = results.filter(r => r.status === 'skipped')
+      const errors = results.filter(r => r.status === 'error')
+      const total = success.reduce((s, r) => s + r.importedCount, 0)
+      if (success.length > 0 || skipped.length > 0) {
+        const parts = []
+        if (success.length > 0) parts.push(`${total}件をインポートしました`)
+        if (skipped.length > 0) parts.push(`${skipped.length}個は既にアップロード済みのためスキップ`)
+        if (errors.length > 0) parts.push(`${errors.length}個はエラー`)
+        alert(parts.join('\n'))
         await loadData()
       } else {
-        // 失敗メッセージを表示
-        alert('処理可能なデータが見つかりませんでした。CSVファイルの内容を確認してください。')
+        alert('処理可能なデータが見つかりませんでした。')
       }
     }
 
-    // チャートナビゲーション状態の更新ハンドラー
-    const handleNavigationState = (state) => {
-      // ローカル状態を更新
-      chartNavigationState.value = state
-      // 親コンポーネント（App.vue）に状態を通知
-      emit('chart-navigation-updated', state)
-    }
+    const handleNavigationState = (state) => { emit('chart-navigation-updated', state) }
 
-    // コンポーネントマウント時の初期処理
-    onMounted(() => {
-      // データを読み込み
-      loadData()
-    })
+    onMounted(() => { loadData() })
 
-    // テンプレートで使用する変数と関数を返却
-    return {
-      loading,
-      chartData,
-      summaryData,
-      uploadSuccess,
-      handleFileUpload,
-      handleFolderUpload,
-      chartNavigationState,
-      handleNavigationState
-    }
+    return { loading, chartData, summaryData, handleFileUpload, handleFolderUpload, handleNavigationState }
   }
 }
 </script>
 
 <style lang="scss" scoped>
-/* ホームページのメインコンテナ */
-.home-page {
 
-}
+.home-page { display: flex; flex-direction: column; gap: $sp-6; }
 
-/* ファイルアップロードと対応形式表示のグリッドコンテナ */
-.upload-container {
+.upload-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 30px;
-  margin-bottom: 30px;
+  gap: $sp-5;
+
+  @media (max-width: $bp-md) { grid-template-columns: 1fr; }
 }
 
-/* ファイルアップロード部分のスタイル */
-.upload-section {
-  background: #f8f9fa;
-  border: 2px dashed #dee2e6;
-  border-radius: 10px;
-  padding: 40px;
+.upload-area {
+  border: 2px dashed $color-border;
+  border-radius: $radius-lg;
+  padding: $sp-8;
   text-align: center;
-  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $sp-4;
+  transition: $transition-base;
 
-  /* ホバー時のスタイル変更 */
-  &:hover {
-    border-color: #4CAF50;
-    background: #f0f8ff;
-  }
+  &:hover { border-color: $color-accent; background: $color-accent-light; }
 }
 
-/* アップロードアイコンのスタイル */
-.upload-icon {
-  font-size: 3em;
-  margin-bottom: 20px;
-  color: #6c757d;
+.upload-icon { font-size: 2.5rem; }
+
+.upload-label {
+  font-size: $font-size-base;
+  color: $color-text-secondary;
 }
 
-/* アップロード説明テキストのスタイル */
-.upload-text {
-  font-size: 1.2em;
-  color: #495057;
-  margin-bottom: 15px;
+.format-card {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $sp-5;
+  box-shadow: $shadow-xs;
 }
 
-/* 対応ファイル形式テーブルセクションのスタイル */
-.format-table-section {
-  background: white;
-  border-radius: 10px;
-  padding: 25px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-
-  /* セクションタイトルのスタイル */
-  h3 {
-    margin-bottom: 20px;
-    color: #333;
-    font-size: 1.2em;
-  }
+.format-title {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $sp-4;
 }
 
-/* 対応形式テーブルのスタイル */
 .format-table {
   width: 100%;
   border-collapse: collapse;
 
-  /* テーブルヘッダーのスタイル */
   th {
-    background: #f8f9fa;
-    padding: 12px;
+    background: $color-surface-sub;
+    padding: $sp-2 $sp-3;
     text-align: left;
-    border-bottom: 2px solid #dee2e6;
-    font-weight: 600;
-    font-size: 0.9em;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: $color-text-secondary;
+    border-bottom: 1px solid $color-border;
   }
 
-  /* テーブルセルのスタイル */
   td {
-    padding: 12px;
-    border-bottom: 1px solid #dee2e6;
-    font-size: 0.9em;
+    padding: $sp-3;
+    font-size: $font-size-sm;
+    border-bottom: 1px solid $color-border-light;
+    color: $color-text-primary;
   }
 
-  /* テーブル行のホバースタイル */
-  tr:hover {
-    background: #f8f9fa;
-  }
+  tr:last-child td { border-bottom: none; }
 }
 
-/* ステータスバッジのスタイル */
-.status {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.8em;
-  font-weight: bold;
+.badge {
+  display: inline-block;
+  padding: 2px $sp-2;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
 
-  /* 対応済みステータスのスタイル */
-  &.supported {
-    background: #d4edda;
-    color: #155724;
-  }
-
-  /* 予定ステータスのスタイル */
-  &.planned {
-    background: #fff3cd;
-    color: #856404;
-  }
+  &-supported { background: #d1fae5; color: #065f46; }
+  &-planned { background: #fef3c7; color: #92400e; }
 }
 
-/* グラフセクションのスタイル */
-.chart-section {
-  background: white;
-  border-radius: 10px;
-  padding: 30px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+.chart-card {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $sp-6;
+  box-shadow: $shadow-xs;
 }
 
-/* グラフヘッダーのスタイル */
-.chart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  border-bottom: 2px solid #f8f9fa;
-  padding-bottom: 15px;
+.chart-card-header {
+  margin-bottom: $sp-5;
+  padding-bottom: $sp-4;
+  border-bottom: 1px solid $color-border-light;
 }
-
-/* グラフタイトルのスタイル */
-.chart-title {
-  font-size: 1.5em;
-  color: #333;
-}
-
-/* 期間選択ボタンコンテナのスタイル */
-.period-selector {
-  display: flex;
-  gap: 10px;
-}
-
-/* 期間選択ボタンのスタイル */
-.period-btn {
-  background: #e9ecef;
-  border: 1px solid #dee2e6;
-  padding: 8px 15px;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  /* アクティブ状態のスタイル */
-  &.active {
-    background: #4CAF50;
-    color: white;
-    border-color: #4CAF50;
-  }
-
-  /* 非アクティブ時のホバースタイル */
-  &:hover:not(.active) {
-    background: #dee2e6;
-  }
-}
-
-/* プライバシートグルのスタイル */
-.privacy-toggle {
-  text-align: center;
-  margin: 20px 0;
-}
-
 </style>

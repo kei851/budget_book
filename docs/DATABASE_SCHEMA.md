@@ -3,7 +3,7 @@
 ## データモデル関係図
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'er': {'fontSize': '16px'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'er': {'fontSize': '16px', 'entityPadding': '20'}}}%%
 erDiagram
     CATEGORIES ||--o{ TRANSACTIONS : has
     CATEGORIES ||--o{ CATEGORY_RULES : has
@@ -73,7 +73,7 @@ erDiagram
 ### Categories テーブル
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 150, 'rankSpacing': 150}}}%%
 graph TD
     CAT["📊 categories<br/>━━━━━━━━━━━━━━━━━━<br/><b>カテゴリマスタ</b><br/>━━━━━━━━━━━━━━━━━━<br/>id (PK)<br/>name (UNIQUE)<br/>color<br/>icon<br/>description<br/>display_order<br/>━━━━━━━━━━━━━━━━━━<br/>インデックス:<br/>• name (UNIQUE)<br/>• display_order"]
 
@@ -94,7 +94,7 @@ graph TD
 ### Transactions テーブル
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '14px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '14px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 120, 'rankSpacing': 120}}}%%
 graph TD
     TX["📝 transactions<br/>━━━━━━━━━━━━━━━━━━━━━<br/><b>取引記録</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>id (PK)<br/>category_id (FK, optional)<br/>transaction_date<br/>store_name (max 500)<br/>amount (Decimal)<br/>payment_method<br/>user_name<br/>payment_month<br/>auto_classified (boolean)<br/>upload_history_id (FK)<br/>raw_data (Text)<br/>━━━━━━━━━━━━━━━━━━━━━<br/>インデックス:<br/>• category_id<br/>• transaction_date<br/>• amount<br/>• upload_history_id<br/>• (transaction_date + amount)<br/>━━━━━━━━━━━━━━━━━━━━━"]
 
@@ -112,7 +112,7 @@ graph TD
 ### CategoryRules テーブル
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '14px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '14px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 120, 'rankSpacing': 120}}}%%
 graph TD
     RULE["🏷️ category_rules<br/>━━━━━━━━━━━━━━━━<br/><b>分類ルール</b><br/>━━━━━━━━━━━━━━━━<br/>id (PK)<br/>category_id (FK)<br/>keyword (UNIQUE)<br/>priority (Integer)<br/>━━━━━━━━━━━━━━━━<br/>インデックス:<br/>• category_id<br/>• keyword<br/>• priority<br/>━━━━━━━━━━━━━━━━<br/><b>用途:</b><br/>CSV インポート時に<br/>store_name を照合して<br/>自動でカテゴリを判定"]
 
@@ -126,7 +126,7 @@ graph TD
 ### UploadHistories テーブル
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '14px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '14px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 120, 'rankSpacing': 120}}}%%
 graph TD
     UH["📂 upload_histories<br/>━━━━━━━━━━━━━━━━━━<br/><b>アップロード履歴</b><br/>━━━━━━━━━━━━━━━━━━<br/>id (PK)<br/>filename<br/>upload_date<br/>imported_count<br/>file_hash (MD5)<br/>data_source_type<br/>   (rakuten|epos)<br/>description<br/>━━━━━━━━━━━━━━━━━━<br/>インデックス:<br/>• file_hash<br/>• upload_date<br/>━━━━━━━━━━━━━━━━━━<br/><b>用途:</b><br/>重複ファイル検出<br/>インポート履歴管理"]
 
@@ -140,7 +140,7 @@ graph TD
 ## データフロー：スキーマの観点
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 150, 'rankSpacing': 150}}}%%
 graph TB
     subgraph Import["CSV インポート"]
         File["CSV"]
@@ -177,7 +177,7 @@ graph TB
 ## インデックス戦略
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 150, 'rankSpacing': 150}}}%%
 graph TB
     subgraph TxIndexes["Transactions インデックス"]
         Idx1["<b>category_id</b><br/>━━━━━━━━━━<br/>用途: JOIN categories<br/>カテゴリフィルタ"]
@@ -214,7 +214,7 @@ graph TB
 ### Category → Transaction
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 150, 'rankSpacing': 150}}}%%
 graph LR
     Cat["Category<br/>id=3<br/>name=食費<br/>color=#4BC0C0"]
 
@@ -238,7 +238,7 @@ graph LR
 ### UploadHistory → Transaction (Cascade Delete)
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 150, 'rankSpacing': 150}}}%%
 graph LR
     UH["UploadHistory<br/>id=5<br/>filename=202410.csv<br/>imported_count=86"]
 
@@ -265,7 +265,7 @@ graph LR
 ## スケーリング戦略
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 150, 'rankSpacing': 150}}}%%
 graph TB
     Current["現在<br/>SQLite3<br/>単一ファイル<br/>同期処理"]
 

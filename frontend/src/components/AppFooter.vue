@@ -1,20 +1,22 @@
 <template lang="pug">
 footer.footer
-  p created by Onishi
+  p.footer-text created by Onishi
 </template>
 
 <script>
-export default {
-  name: 'AppFooter'
-}
+export default { name: 'AppFooter' }
 </script>
 
 <style lang="scss" scoped>
+
 .footer {
-  background: #f8f9fa;
-  padding: 20px;
+  padding: $sp-4 $sp-6;
+  border-top: 1px solid $color-border;
   text-align: center;
-  color: #6c757d;
-  border-top: 1px solid #dee2e6;
+}
+
+.footer-text {
+  font-size: $font-size-sm;
+  color: $color-text-muted;
 }
 </style>

@@ -3,7 +3,7 @@
 ## コンポーネント階層図
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 150, 'rankSpacing': 150}}}%%
 graph TD
     App["<b>App.vue</b><br/>ルートコンポーネント<br/>━━━━━━━━━━━<br/>状態:<br/>• currentPage<br/>• isPrivacyMode<br/>• showUploadManager<br/>• chartNavigationState"]
 
@@ -59,7 +59,7 @@ graph TD
 ## Props と Emits の流れ
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 150, 'rankSpacing': 150}}}%%
 graph TB
     subgraph AppState["App.vue<br/>グローバル状態"]
         Page["currentPage"]
@@ -98,7 +98,7 @@ graph TB
 ### HomePage
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '14px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '14px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 120, 'rankSpacing': 120}}}%%
 graph TD
     Home["<b>HomePage.vue</b><br/>┏━━━━━━━━━━━━━━━━┓<br/>┃ Props:           ┃<br/>┃ • isPrivacyMode  ┃<br/>┃ • chartNavState  ┃<br/>┗━━━━━━━━━━━━━━━━┛<br/><br/>┏━━━━━━━━━━━━━━━━┓<br/>┃ State:           ┃<br/>┃ • loading        ┃<br/>┃ • chartData      ┃<br/>┃ • summaryData    ┃<br/>┗━━━━━━━━━━━━━━━━┛"]
 
@@ -125,7 +125,7 @@ graph TD
 ### AnalyticsPage
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '14px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '14px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 120, 'rankSpacing': 120}}}%%
 graph TD
     Analytics["<b>AnalyticsPage.vue</b><br/>┏━━━━━━━━━━━━┓<br/>┃ Props:         ┃<br/>┃ • chartNavState┃<br/>┃ • isPrivacyMode┃<br/>┗━━━━━━━━━━━━┛<br/><br/>┏━━━━━━━━━━━━┓<br/>┃ Features:      ┃<br/>┃ • 日次トレンド ┃<br/>┃ • 店舗TOP10   ┃<br/>┃ • 統計表示     ┃<br/>┗━━━━━━━━━━━━┛"]
 
@@ -157,7 +157,7 @@ graph TD
 ### CategoryRulesPage
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '14px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '14px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 120, 'rankSpacing': 120}}}%%
 graph TD
     Rules["<b>CategoryRulesPage.vue</b><br/>━━━━━━━━━━<br/>ルール管理"]
 
@@ -183,7 +183,7 @@ graph TD
 ## API通信パターン
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 150, 'rankSpacing': 150}}}%%
 graph LR
     subgraph FrontendComps["フロントエンド<br/>コンポーネント"]
         FU["FileUpload"]

@@ -3,7 +3,7 @@
 ## 全体構成図
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '18px', 'fontFamily': 'arial', 'primaryTextColor': '#000'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '18px', 'fontFamily': 'arial', 'primaryTextColor': '#000'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 150, 'rankSpacing': 150}}}%%
 graph TB
     subgraph Frontend["🎨 フロントエンド層<br/>(Vue.js 3 - Port 3002)"]
         direction TB
@@ -88,7 +88,7 @@ graph TB
 ## テクノロジースタック
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 150, 'rankSpacing': 150}}}%%
 graph LR
     subgraph Frontend["🎨 フロントエンド"]
         Vue["Vue.js 3<br/>Composition API"]
@@ -143,7 +143,7 @@ graph LR
 ## ポート構成
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 150, 'rankSpacing': 150}}}%%
 graph TB
     Internet["インターネット"]
 

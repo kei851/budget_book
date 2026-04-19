@@ -128,7 +128,7 @@ sequenceDiagram
 ## ホームページデータ取得フロー
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 150, 'rankSpacing': 150}}}%%
 graph TB
     subgraph Frontend["🎨 フロントエンド"]
         HP["HomePage.vue<br/>mounted()"]
@@ -184,7 +184,7 @@ graph TB
 ## カテゴリ自動分類フロー
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 150, 'rankSpacing': 150}}}%%
 graph TD
     Start["取引作成時<br/>store_name: 楽天ｶｰﾄﾞ"]
 
@@ -248,7 +248,7 @@ graph TD
 ## プライバシーモード フロー
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial'}, 'flowchart': {'htmlLabels': true, 'nodeSpacing': 150, 'rankSpacing': 150}}}%%
 graph LR
     User["👤 ユーザー"]
     Menu["HamburgerMenu"]

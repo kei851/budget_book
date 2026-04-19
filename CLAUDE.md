@@ -1,116 +1,179 @@
-# Claude Code 開発ガイドライン
+# Budget Book — Claude Code ガイドライン
 
-**プロジェクト**: Budget Book  
-**作成日**: 2025年8月13日  
-**最終更新**: 2025年8月13日
+## プロジェクト概要
 
-このドキュメントは、Claudeと一緒に開発を進める際の重要な指針とベストプラクティスをまとめたものです。
+家計簿Webアプリ。楽天カード/エポスカードのCSVを取り込み、カテゴリ別支出を可視化する。
+
+- **バックエンド**: Ruby on Rails (API mode) — `backend/`
+- **フロントエンド**: Vue 3 (Composition API, Pug テンプレート, SCSS) — `frontend/`
+- **DB**: SQLite
 
 ---
 
-## 📋 必須実行項目
+## アーキテクチャ早見表
 
-### 開発日誌の更新
-- **毎回必須**: 作業完了後は `docs/development_diary.md` を必ず更新
-- **記録内容**: 
-  - 実装した機能・修正内容
-  - 発生した問題とその解決方法
-  - 技術的な学びや発見
-  - 次回への改善点・課題
+```
+frontend/src/
+  components/
+    HomePage.vue          # CSV アップロード + 月次棒グラフ
+    AnalyticsPage.vue     # 月別詳細分析（円グラフ・折れ線・取引テーブル）
+    CategoryRulesPage.vue # キーワードルール管理
+    UploadManager.vue     # アップロード履歴・削除
+    ExpenseChart.vue      # 棒グラフコンポーネント（12ヶ月スクロール）
+    SummaryCards.vue      # サマリーカード
+    CategoryTag.vue       # カテゴリ変更タグ（インライン編集）
+    FileUpload.vue        # ファイルドロップゾーン
+  services/api.js         # API 呼び出しをまとめたサービス層
 
-### TodoWrite ツールの活用
-- **作業開始時**: 必ずTodoWriteで作業内容を整理・計画
-- **作業中**: タスクの進捗をリアルタイムで更新（pending → in_progress → completed）
-- **重要**: 完了したタスクは即座にcompletedに変更（バッチ処理禁止）
+backend/app/
+  models/
+    category.rb           # カテゴリマスタ（固定7種）
+    transaction.rb        # 取引明細
+    category_rule.rb      # キーワード→カテゴリ分類ルール（after_save で CSV 自動更新）
+    upload_history.rb     # CSVアップロード履歴
+  controllers/api/v1/
+    transactions_controller.rb   # index / update / import / monthly / analytics
+    category_rules_controller.rb # CRUD + bulk_update
+    categories_controller.rb
+    upload_histories_controller.rb
+  services/
+    csv_import_service.rb        # CSV パース・インポート（楽天/エポス両対応）
+    category_classifier_service.rb
+```
 
-## 🔧 技術実装の原則
+---
+
+## カテゴリ定義（変更不可）
+
+| ID | 名前 | 色 | display_order |
+|----|------|----|---------------|
+| 1 | 投資 | #FF6384 | 1 |
+| 2 | 食費 | #4BC0C0 | 2 |
+| 3 | 日用品費 | #9966FF | 3 |
+| 4 | 娯楽費 | #36A2EB | 4 |
+| 5 | 住宅費 | #FF9F40 | 5 |
+| 6 | 交通費 | #FFCE56 | 6 |
+| 7 | その他 | #C9CBCF | 99 |
+
+カテゴリ名→CSSクラス名マッピング（フロントエンド）:
+`投資→investment / 食費→food / 日用品費→daily / 娯楽費→entertainment / 住宅費→housing / 交通費→transport / その他→other`
+
+---
+
+## API エンドポイント
+
+| Method | Path | 説明 |
+|--------|------|------|
+| GET | /api/v1/transactions | 一覧（?month=YYYY-MM, ?category_id=, ?page=, ?per_page=） |
+| PATCH | /api/v1/transactions/:id | カテゴリ更新 |
+| POST | /api/v1/transactions/import | CSV インポート |
+| GET | /api/v1/transactions/monthly | 月次集計（?year=&month=） |
+| GET | /api/v1/transactions/analytics | 詳細分析（?start_date=&end_date=） |
+| GET | /api/v1/categories | カテゴリ一覧 |
+| GET/POST/PATCH/DELETE | /api/v1/category_rules | ルール CRUD |
+| POST | /api/v1/category_rules/bulk_update | キーワード一括更新 |
+| GET/DELETE | /api/v1/upload_histories | 履歴管理 |
+
+CORS 許可オリジン: `http://localhost:3002`
+
+---
+
+## デザインシステム
+
+デザイントークンはすべて `frontend/src/styles/variables.scss` で管理。コンポーネント内で直接カラーコードや px 値を書かない。
+
+### カラー
+| トークン | 値 | 用途 |
+|---|---|---|
+| `$color-bg` | `#f0f2f5` | ページ背景 |
+| `$color-surface` | `#ffffff` | カード・パネル背景 |
+| `$color-surface-sub` | `#f8f9fb` | テーブルヘッダー・サブ背景 |
+| `$color-border` | `#e4e7ec` | 区切り線・アウトライン |
+| `$color-text-primary` | `#111827` | 見出し・本文 |
+| `$color-text-secondary` | `#6b7280` | ラベル・補足 |
+| `$color-text-muted` | `#9ca3af` | プレースホルダー・フッター |
+| `$color-accent` | `#6366f1` | ボタン・リンク・アクティブ |
+| `$color-accent-hover` | `#4f46e5` | ホバー時アクセント |
+| `$color-accent-light` | `#eef2ff` | アクセント背景・ホバー背景 |
+
+### スペーシング（4pxグリッド）
+`$sp-1`=4px / `$sp-2`=8px / `$sp-3`=12px / `$sp-4`=16px / `$sp-5`=20px / `$sp-6`=24px / `$sp-8`=32px / `$sp-10`=40px
+
+### シャドウ
+`$shadow-xs`（カード） / `$shadow-sm`（パネル） / `$shadow-md`（ドロップダウン） / `$shadow-lg`（ドロワー）
+
+### ボーダーラジウス
+`$radius-sm`=6px / `$radius-md`=10px / `$radius-lg`=16px / `$radius-full`=9999px
+
+### タイポグラフィ
+フォント: `Inter`, `Noto Sans JP`（Google Fonts で読み込み済み）
+サイズ: `$font-size-sm`=13px / `$font-size-base`=14px / `$font-size-md`=16px / `$font-size-lg`=18px / `$font-size-xl`=22px
+ウェイト: `$font-weight-medium`=500 / `$font-weight-semibold`=600 / `$font-weight-bold`=700
+
+### コンポーネント規則
+- カードは `.card` クラス（`$color-surface` + `$radius-lg` + `$shadow-sm` + `$color-border-light` ボーダー）
+- プライマリボタン: `$color-accent` 背景・白文字、ホバーで `$color-accent-hover`
+- セカンダリボタン: `$color-surface` 背景・`$color-border` ボーダー
+- SCSS は `@use "../styles/variables" as *;` で読み込む（`@import` は非推奨）
+
+---
+
+## 開発ルール
+
+### コーディング規約
+- **コメント禁止**: 何をするか説明するコメントは書かない。WHY が非自明な場合のみ1行
+- **既存スタイル踏襲**: Pug テンプレート・SCSS scoped・Composition API (`setup()`) を統一
+- **新ライブラリ追加前**: package.json / Gemfile を必ず確認
+- **秘密情報**: ログ出力・コミット禁止
 
 ### ファイル操作
-- **優先順位**: 既存ファイルの編集 > 新規ファイル作成
-- **編集前**: 必ずReadツールで内容確認
-- **新規作成**: 本当に必要な場合のみ作成
-- **ドキュメント**: *.mdやREADMEファイルは明示的な指示がない限り作成禁止
+- 既存ファイル編集 > 新規作成
+- `.md` / `README` は明示指示がない限り作成禁止
+- 編集前に必ず Read で現状確認
 
-### コード品質
-- **コメント**: ユーザーから明示的に指示されない限りコメント追加禁止
-- **既存パターン**: 既存コードのスタイル・パターンを必ず踏襲
-- **ライブラリ確認**: 新しいライブラリ使用前に既存依存関係を必ず確認
-- **セキュリティ**: 秘密情報のログ出力・コミット厳禁
+### CSV 処理の注意点
+- BOM 付き UTF-8 / Shift_JIS 両対応（`csv_import_service.rb` 参照）
+- 半角カタカナ→全角変換（NKF）でキーワードマッチング精度を維持
+- `liberal_parsing: true` 必須
 
-### エラーハンドリング
-- **段階的解決**: エラー発生時は根本原因を特定してから対処
-- **実例記録**: 解決したエラーは必ず開発日誌に記録
-- **再現可能性**: エラー解決手順を詳細に文書化
-
-## 🎯 プロジェクト固有の重要事項
-
-### CSV処理
-- **エンコーディング**: BOM付きUTF-8、Shift_JIS対応必須
-- **文字変換**: 半角カタカナ→全角カタカナ変換（NKF使用）
-- **エラーハンドリング**: liberal_parsing: true オプション必須
-- **大容量対応**: メモリ効率を考慮した処理実装
-
-### API設計
-- **CORS設定**: localhost:3002（フロントエンド）許可設定必須
-- **レスポンス形式**: 一貫したJSONレスポンス構造維持
-- **エラーレスポンス**: 詳細なエラー情報と対処方法を含める
-
-### データベース
-- **インデックス**: 検索・集計に必要なインデックスを適切に設定
-- **外部キー**: optional: true で未分類状態を許可
-- **精度**: 金銭計算はdecimal型で精度確保
-
-## 🚀 開発プロセス
-
-### 段階的実装
-1. **計画**: TodoWriteで作業を細分化・整理
-2. **調査**: 既存コード・依存関係の確認
-3. **実装**: 最小単位での動作確認を重視
-4. **テスト**: 実際のデータでの動作検証
-5. **文書化**: 実装内容を開発日誌に記録
-
-### Git運用
-- **コミット**: 機能単位での適切な粒度
-- **メッセージ**: 変更内容と理由を明確に記載
-- **プッシュ**: ユーザーから明示的な指示があった場合のみ実行
-
-## ⚠️ 注意事項・よくある問題
-
-### Rails関連
-- **マイグレーション**: インデックス重複エラーに注意
-- **belongs_to**: Rails 5以降はoptional: trueで未分類許可が必要
-- **API mode**: viewsやassetsは使用不可
-
-### Vue.js関連  
-- **Composition API**: reactive dataの適切な管理
-- **Chart.js**: データ更新時の再描画処理に注意
-- **コンポーネント**: 親子間のprops/emit通信パターン統一
-
-### 文字エンコーディング
-- **BOM処理**: ファイル先頭のBOM検出・除去処理実装必須
-- **文字化け**: バイナリ読み込み → エンコーディング判定 → 変換の順序厳守
-
-## 📚 学習・改善ポイント
-
-### 技術的成長
-- **フルスタック理解**: フロントエンド・バックエンドの連携パターン習得
-- **データ処理**: 大容量CSV処理の最適化手法
-- **UI/UX**: レスポンシブ対応とユーザビリティ向上
-
-### 開発プロセス改善
-- **ドキュメント駆動**: 仕様書→実装→テスト→文書化の流れ
-- **段階的開発**: MVP→機能追加→改善のイテレーション
-- **品質管理**: コードレビュー・テスト・リファクタリング
-
-## 🔄 定期的な見直し
-
-### このドキュメントの更新
-- **新しい学び**: 重要な発見や解決策は随時追加
-- **プロセス改善**: 開発効率化につながる改善点を反映
-- **技術更新**: 新しい技術・ライブラリ採用時の指針追加
+### Rails の注意点
+- `belongs_to` は `optional: true` で未分類を許可
+- マイグレーション時のインデックス重複に注意
+- `category_rule.rb` の after_create/update/destroy フックが CSV を自動更新する
 
 ---
 
-**重要**: このガイドラインは生きたドキュメントです。プロジェクト進行に合わせて継続的に改善・更新していきます。
+## 必須作業
 
-**次回開発時の最初の作業**: このCLAUDE.mdを必ず確認してから作業開始
+### 毎回の作業後
+- `docs/development_diary.md` に実装内容・問題・解決策を記録
+
+### 作業開始時
+- TodoWrite でタスクを整理してから着手
+- タスク完了次第即 `completed` に更新（バッチ処理禁止）
+
+---
+
+## AI への指示テンプレート
+
+### 機能追加
+```
+[対象ファイル] frontend/src/components/XXX.vue の [具体的な箇所] に
+[何を] 追加してください。
+既存の Composition API / Pug / SCSS のスタイルに合わせること。
+```
+
+### バグ修正
+```
+[症状]: ...
+[再現手順]: ...
+[関連ファイル]: backend/app/controllers/api/v1/transactions_controller.rb
+```
+
+### API 追加
+```
+[エンドポイント]: GET /api/v1/...
+[パラメータ]: ...
+[レスポンス形式]: { key: value }
+transactions_controller.rb に追加し、routes.rb も更新してください。
+```
