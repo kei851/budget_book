@@ -10,7 +10,35 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_12_144827) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_14_075022) do
+  create_table "asset_accounts", force: :cascade do |t|
+    t.string "name"
+    t.string "account_type"
+    t.integer "display_order"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "asset_snapshots", force: :cascade do |t|
+    t.integer "asset_account_id", null: false
+    t.integer "amount", default: 0, null: false
+    t.date "recorded_month", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["asset_account_id", "recorded_month"], name: "index_asset_snapshots_on_asset_account_id_and_recorded_month", unique: true
+    t.index ["asset_account_id"], name: "index_asset_snapshots_on_asset_account_id"
+  end
+
+  create_table "budgets", force: :cascade do |t|
+    t.integer "category_id", null: false
+    t.integer "year", null: false
+    t.integer "month", null: false
+    t.decimal "amount", precision: 12, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category_id", "year", "month"], name: "index_budgets_on_category_id_and_year_and_month", unique: true
+  end
+
   create_table "categories", force: :cascade do |t|
     t.string "name", null: false
     t.string "color", null: false
@@ -78,6 +106,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_12_144827) do
     t.index ["upload_date"], name: "index_upload_histories_on_upload_date"
   end
 
+  add_foreign_key "asset_snapshots", "asset_accounts"
   add_foreign_key "category_keywords", "categories"
   add_foreign_key "category_rules", "categories"
   add_foreign_key "transactions", "categories"

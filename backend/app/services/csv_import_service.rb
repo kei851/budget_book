@@ -11,6 +11,7 @@ class CsvImportService
   end
 
   def import
+    @imported_transactions = []
     content = @csv_file.read.force_encoding('BINARY')
 
     content = if content.start_with?("\xEF\xBB\xBF".force_encoding('BINARY'))
@@ -61,6 +62,8 @@ class CsvImportService
       import_transaction(row, index + 2)
     end
 
+    ai_reclassify_unclassified
+
     {
       success: @errors.empty? || @imported_count > 0,
       imported_count: @imported_count,
@@ -77,6 +80,8 @@ class CsvImportService
   def detect_data_source(headers)
     if headers.include?('ご利用年月日')
       'epos'
+    elsif headers.include?('入出金(円)')
+      'rakuten_bank'
     elsif headers.include?('利用日')
       'rakuten'
     else
@@ -85,19 +90,56 @@ class CsvImportService
   end
 
   def get_column_name(column_type)
-    case column_type
-    when :date   then @data_source_type == 'epos' ? 'ご利用年月日' : '利用日'
-    when :store  then @data_source_type == 'epos' ? 'ご利用場所' : '利用店名・商品名'
-    when :amount then @data_source_type == 'epos' ? 'ご利用金額(キャッシングでは元金になります)' : '利用金額'
-    when :user   then @data_source_type == 'epos' ? nil : '利用者'
-    when :payment_method then @data_source_type == 'epos' ? '支払区分' : '支払方法'
+    case @data_source_type
+    when 'epos'
+      case column_type
+      when :date   then 'ご利用年月日'
+      when :store  then 'ご利用場所'
+      when :amount then 'ご利用金額(キャッシングでは元金になります)'
+      when :user   then nil
+      when :payment_method then '支払区分'
+      end
+    when 'rakuten_bank'
+      case column_type
+      when :date   then '取引日'
+      when :store  then '入出金内容'
+      when :amount then '入出金(円)'
+      when :user, :payment_method then nil
+      end
+    else
+      case column_type
+      when :date   then '利用日'
+      when :store  then '利用店名・商品名'
+      when :amount then '利用金額'
+      when :user   then '利用者'
+      when :payment_method then '支払方法'
+      end
     end
   end
 
+  def rakuten_bank_skip?(row)
+    return false unless @data_source_type == 'rakuten_bank'
+    content = row['入出金内容'].to_s
+    content.match?(/ラクテンカ|楽天カ/) ||
+      content.match?(/\Aカ[ーｰ\-−]ド(出金|入金)/) ||
+      content.include?('預金利息') ||
+      content.include?('給与')
+  end
+
   def import_transaction(row, row_number)
+    return if rakuten_bank_skip?(row)
+
     transaction_date = parse_date(row[get_column_name(:date)])
     store_name = row[get_column_name(:store)]&.strip
-    amount = parse_amount(row[get_column_name(:amount)])
+    raw_amount_str = row[get_column_name(:amount)]
+
+    if @data_source_type == 'rakuten_bank'
+      raw_val = parse_amount(raw_amount_str)
+      return if raw_val.nil? || raw_val >= 0
+      amount = raw_val.abs
+    else
+      amount = parse_amount(raw_amount_str)
+    end
     user_name = row[get_column_name(:user)]&.strip
     payment_method = row[get_column_name(:payment_method)]&.strip
 
@@ -127,6 +169,7 @@ class CsvImportService
 
     if transaction.save
       @imported_count += 1
+      @imported_transactions << transaction if transaction.category_id.nil?
     else
       add_error(row_number, "データ保存エラー: #{transaction.errors.full_messages.join(', ')}")
     end
@@ -138,7 +181,7 @@ class CsvImportService
     return nil if date_str.blank?
 
     date_str = date_str.to_s.strip
-    date_patterns = ['%Y/%m/%d', '%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y', '%Y年%m月%d日']
+    date_patterns = ['%Y/%m/%d', '%Y-%m-%d', '%Y%m%d', '%m/%d/%Y', '%d/%m/%Y', '%Y年%m月%d日']
 
     date_patterns.each do |pattern|
       return Date.strptime(date_str, pattern)
@@ -177,5 +220,19 @@ class CsvImportService
 
   def add_error(row_number, message)
     @errors << "#{row_number}行目: #{message}"
+  end
+
+  def ai_reclassify_unclassified
+    unclassified = (@imported_transactions || []).select { |t| t.category_id.nil? }
+    return if unclassified.empty?
+
+    store_names = unclassified.map(&:store_name).uniq
+    ai_results = AiCategoryClassifierService.new.classify_batch(store_names)
+    unclassified.each do |t|
+      cat_id = ai_results[t.store_name]
+      t.update(category_id: cat_id, auto_classified: true) if cat_id
+    end
+  rescue => e
+    Rails.logger.error "AI一括分類エラー: #{e.message}"
   end
 end

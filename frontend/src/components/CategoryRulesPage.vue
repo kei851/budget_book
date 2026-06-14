@@ -226,27 +226,25 @@ export default {
           if (mappedCategories.length > 0) {
             categories.value = mappedCategories
           } else {
-            // マッピング後に空になった場合もフォールバック
             categories.value = [
-              { id: 1, name: '投資', color: '#FF6384' },
-              { id: 2, name: '食費', color: '#4BC0C0' },
-              { id: 3, name: '日用品費', color: '#FFCE56' },
-              { id: 4, name: '娯楽費', color: '#36A2EB' },
-              { id: 5, name: '住宅費', color: '#FF6B6B' },
-              { id: 6, name: '交通費', color: '#FF9F40' },
-              { id: 7, name: 'その他', color: '#9966FF' }
+              { id: 1, name: '投資', color: '#FC3059' },
+              { id: 2, name: '食費', color: '#14b8a6' },
+              { id: 3, name: '日用品費', color: '#8b5cf6' },
+              { id: 4, name: '娯楽費', color: '#338EE8' },
+              { id: 5, name: '住宅費', color: '#B87500' },
+              { id: 6, name: '交通費', color: '#B89000' },
+              { id: 7, name: 'その他', color: '#868F9C' }
             ]
           }
         } else {
-          // フォールバック用のデフォルトカテゴリ
           categories.value = [
-            { id: 1, name: '投資', color: '#FF6384' },
-            { id: 2, name: '食費', color: '#4BC0C0' },
-            { id: 3, name: '日用品費', color: '#FFCE56' },
-            { id: 4, name: '娯楽費', color: '#36A2EB' },
-            { id: 5, name: '住宅費', color: '#FF6B6B' },
-            { id: 6, name: '交通費', color: '#FF9F40' },
-            { id: 7, name: 'その他', color: '#9966FF' }
+            { id: 1, name: '投資', color: '#FC3059' },
+            { id: 2, name: '食費', color: '#14b8a6' },
+            { id: 3, name: '日用品費', color: '#8b5cf6' },
+            { id: 4, name: '娯楽費', color: '#338EE8' },
+            { id: 5, name: '住宅費', color: '#B87500' },
+            { id: 6, name: '交通費', color: '#B89000' },
+            { id: 7, name: 'その他', color: '#868F9C' }
           ]
         }
         console.log('最終カテゴリデータ:', categories.value)
@@ -408,126 +406,129 @@ export default {
 
 <style lang="scss" scoped>
 .category-rules-page {
-  padding: 20px;
+  padding: $sp-5;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: $sp-8;
 }
 
 .page-title {
-  font-size: 1.8em;
-  color: #333;
-  font-weight: 600;
+  font-size: $font-size-xl;
+  color: $color-text-primary;
+  font-weight: $font-weight-semibold;
 }
 
 .add-rule-btn {
-  background: #4CAF50;
-  color: white;
+  background: $color-accent;
+  color: #fff;
   border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-weight: 600;
+  padding: $sp-3 $sp-5;
+  border-radius: $radius-sm;
+  font-weight: $font-weight-semibold;
   cursor: pointer;
-  transition: background 0.2s;
-  
-  &:hover {
-    background: #45a049;
-  }
+  transition: $transition-base;
+
+  &:hover { background: $color-accent-hover; }
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  
-  h3 {
-    color: #333;
-    margin: 0;
-  }
-  
+  margin-bottom: $sp-5;
+
+  h3 { color: $color-text-primary; margin: 0; font-weight: $font-weight-semibold; }
+
   .rules-count {
-    background: #f0f0f0;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 0.9em;
-    color: #666;
+    background: $color-border-light;
+    padding: $sp-1 $sp-3;
+    border-radius: $radius-full;
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
   }
 }
 
 .rules-table {
-  background: white;
-  border-radius: 10px;
+  background: $color-surface;
+  border-radius: $radius-md;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: $shadow-sm;
+  border: 1px solid $color-border-light;
 }
 
 .table-header {
   display: grid;
   grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1.5fr;
-  gap: 15px;
-  padding: 15px 20px;
-  background: #f8f9fa;
-  font-weight: 600;
-  color: #333;
-  border-bottom: 1px solid #dee2e6;
+  gap: $sp-4;
+  padding: $sp-4 $sp-5;
+  background: $color-surface-sub;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  border-bottom: 1px solid $color-border;
 }
 
 .rule-row {
   display: grid;
   grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1.5fr;
-  gap: 15px;
-  padding: 15px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  gap: $sp-4;
+  padding: $sp-4 $sp-5;
+  border-bottom: 1px solid $color-border-light;
   align-items: center;
-  transition: background 0.2s;
-  
-  &:hover {
-    background: #f8f9fa;
-  }
-  
+  transition: $transition-fast;
+
+  &:hover { background: $color-surface-sub; }
+
   &.editing {
-    background: #fff9e6;
-    border-left: 4px solid #4CAF50;
+    background: $color-accent-light;
+    border-left: 3px solid $color-accent;
   }
 }
 
 .keyword-input, .priority-input {
   width: 100%;
-  padding: 6px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.9em;
+  padding: $sp-1 + 2 $sp-2;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+
+  &:focus {
+    outline: none;
+    border-color: $color-accent;
+    box-shadow: 0 0 0 2px $color-accent-light;
+  }
 }
 
 .keyword-display {
   font-family: 'Monaco', 'Menlo', monospace;
-  background: #f5f5f5;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.9em;
+  background: $color-surface-sub;
+  padding: $sp-1 $sp-2;
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
 }
 
 .category-select {
   width: 100%;
-  padding: 6px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.9em;
+  padding: $sp-1 + 2 $sp-2;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
 }
 
 .category-chip {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 0.8em;
-  font-weight: bold;
-  color: white;
+  padding: $sp-1 $sp-2 + 2;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: #fff;
 }
 
 .priority-display {
@@ -536,79 +537,80 @@ export default {
   justify-content: center;
   width: 30px;
   height: 30px;
-  background: #e9ecef;
+  background: $color-border-light;
   border-radius: 50%;
-  font-weight: bold;
-  color: #495057;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
 }
 
 .action-buttons {
   display: flex;
-  gap: 8px;
+  gap: $sp-2;
 }
 
 .edit-btn, .save-btn {
-  background: #007bff;
-  color: white;
+  background: $color-accent;
+  color: #fff;
   border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 0.8em;
+  padding: $sp-1 + 2 $sp-3;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
   cursor: pointer;
-  
-  &:hover {
-    background: #0056b3;
-  }
+  transition: $transition-fast;
+
+  &:hover { background: $color-accent-hover; }
 }
 
-.delete-btn, .cancel-btn {
-  background: #dc3545;
-  color: white;
+.delete-btn {
+  background: $color-danger;
+  color: #fff;
   border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 0.8em;
+  padding: $sp-1 + 2 $sp-3;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
   cursor: pointer;
-  
-  &:hover {
-    background: #c82333;
-  }
+  transition: $transition-fast;
+
+  &:hover { background: $red-700; }
+}
+
+.cancel-btn {
+  background: $color-surface-sub;
+  color: $color-text-secondary;
+  border: 1px solid $color-border;
+  padding: $sp-1 + 2 $sp-3;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  cursor: pointer;
+  transition: $transition-fast;
+
+  &:hover { background: $color-border-light; }
 }
 
 .bulk-btn {
-  background: #17a2b8;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 0.8em;
+  background: $color-accent-light;
+  color: $color-accent;
+  border: 1px solid $blue-100;
+  padding: $sp-2 $sp-3;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
   cursor: pointer;
   white-space: nowrap;
-  
-  &:hover {
-    background: #138496;
-  }
+  transition: $transition-fast;
+
+  &:hover { background: $blue-100; }
 }
 
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
-  color: #666;
-  
-  .empty-icon {
-    font-size: 4em;
-    margin-bottom: 20px;
-  }
-  
-  .empty-text {
-    font-size: 1.3em;
-    font-weight: 600;
-    margin-bottom: 10px;
-  }
-  
-  .empty-description {
-    color: #999;
-  }
+  padding: $sp-12 $sp-5;
+  color: $color-text-secondary;
+
+  .empty-icon { font-size: 3.5em; margin-bottom: $sp-5; }
+  .empty-text { font-size: $font-size-lg; font-weight: $font-weight-semibold; margin-bottom: $sp-2; }
+  .empty-description { color: $color-text-muted; font-size: $font-size-sm; }
 }
 
 .modal {
@@ -617,172 +619,139 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.5);
+  background: rgba(45, 55, 69, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: $z-modal;
 }
 
 .modal-content {
-  background: white;
-  border-radius: 10px;
+  background: $color-surface;
+  border-radius: $radius-lg;
   width: 90%;
   max-width: 500px;
   max-height: 80vh;
   overflow-y: auto;
+  box-shadow: $shadow-lg;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #f0f0f0;
-  
-  h3 {
-    margin: 0;
-    color: #333;
-  }
-  
+  padding: $sp-5;
+  border-bottom: 1px solid $color-border-light;
+
+  h3 { margin: 0; color: $color-text-primary; font-weight: $font-weight-semibold; }
+
   .close-btn {
     background: none;
     border: none;
-    font-size: 1.5em;
+    font-size: $font-size-lg;
     cursor: pointer;
-    color: #999;
-    
-    &:hover {
-      color: #333;
-    }
+    color: $color-text-muted;
+    line-height: 1;
+
+    &:hover { color: $color-text-primary; }
   }
 }
 
-.modal-body {
-  padding: 20px;
-}
+.modal-body { padding: $sp-5; }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 20px;
-  border-top: 1px solid #f0f0f0;
+  gap: $sp-2;
+  padding: $sp-5;
+  border-top: 1px solid $color-border-light;
 }
 
 .form-group {
-  margin-bottom: 20px;
-  
+  margin-bottom: $sp-5;
+
   label {
     display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #333;
+    margin-bottom: $sp-2;
+    font-weight: $font-weight-semibold;
+    font-size: $font-size-sm;
+    color: $color-text-primary;
   }
 }
 
 .form-input, .form-select {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 1em;
-  
+  padding: $sp-2 + 2 $sp-3;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  font-size: $font-size-base;
+  color: $color-text-primary;
+
   &:focus {
     outline: none;
-    border-color: #4CAF50;
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
-  }
-}
-
-.cancel-btn {
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  
-  &:hover {
-    background: #5a6268;
+    border-color: $color-accent;
+    box-shadow: 0 0 0 2px $color-accent-light;
   }
 }
 
 .add-btn {
-  background: #4CAF50;
-  color: white;
+  background: $color-accent;
+  color: #fff;
   border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
+  padding: $sp-2 + 2 $sp-5;
+  border-radius: $radius-sm;
+  font-weight: $font-weight-semibold;
   cursor: pointer;
-  
-  &:hover:not(:disabled) {
-    background: #45a049;
-  }
-  
-  &:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-  }
+  transition: $transition-base;
+
+  &:hover:not(:disabled) { background: $color-accent-hover; }
+  &:disabled { background: $color-border; cursor: not-allowed; }
 }
 
 .bulk-info {
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  
-  > div {
-    margin-bottom: 10px;
-    
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
+  background: $color-surface-sub;
+  padding: $sp-5;
+  border-radius: $radius-sm;
+  margin-bottom: $sp-5;
+
+  > div { margin-bottom: $sp-2; &:last-child { margin-bottom: 0; } }
 }
 
 .keyword-highlight {
-  background: #fff3cd;
-  padding: 2px 6px;
-  border-radius: 4px;
+  background: $yellow-60;
+  padding: 2px $sp-1 + 2;
+  border-radius: 3px;
   font-family: monospace;
+  color: $color-warning;
 }
 
 .count-highlight {
-  background: #d4edda;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: bold;
+  background: $color-success-bg;
+  padding: 2px $sp-1 + 2;
+  border-radius: 3px;
+  font-weight: $font-weight-semibold;
+  color: $color-success;
 }
 
 .bulk-warning {
-  background: #fff3cd;
-  border: 1px solid #ffeaa7;
-  padding: 15px;
-  border-radius: 6px;
-  color: #856404;
-  font-size: 0.9em;
+  background: $color-warning-bg;
+  border: 1px solid $yellow-500;
+  padding: $sp-4;
+  border-radius: $radius-sm;
+  color: $color-warning;
+  font-size: $font-size-sm;
 }
 
 .bulk-apply-btn {
-  background: #17a2b8;
-  color: white;
+  background: $color-accent;
+  color: #fff;
   border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
+  padding: $sp-2 + 2 $sp-5;
+  border-radius: $radius-sm;
+  font-weight: $font-weight-semibold;
   cursor: pointer;
-  
-  &:hover {
-    background: #138496;
-  }
-}
+  transition: $transition-base;
 
-// カテゴリ別の色設定
-.category-investment { background: #667eea; }
-.category-food { background: #4CAF50; }
-.category-daily { background: #FF9800; }
-.category-entertainment { background: #E91E63; }
-.category-housing { background: #9C27B0; }
-.category-transport { background: #00BCD4; }
-.category-other { background: #9E9E9E; }
+  &:hover { background: $color-accent-hover; }
+}
 </style>

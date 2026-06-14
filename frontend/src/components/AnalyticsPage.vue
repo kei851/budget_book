@@ -38,89 +38,112 @@
           @click="hasDataForMonth(month) ? selectMonth(month) : null"
         ) {{ month }}月
 
-  .stats-cards
-    .stat-card
-      .stat-title 選択期間の総支出
-      .stat-value {{ isPrivacyMode ? '¥***' : formatCurrency(statsData.totalAmount) }}
+  .analytics-tabs
+    button.tab-btn(
+      v-for="tab in tabs"
+      :key="tab.id"
+      :class="{ active: activeTab === tab.id }"
+      @click="activeTab = tab.id"
+    ) {{ tab.label }}
 
-    .stat-card.red
-      .stat-title 最も高い支出
-      .stat-value {{ isPrivacyMode ? '¥***' : formatCurrency(statsData.maxAmount) }}
+  div(v-show="activeTab === 'overview'")
+    .stats-cards
+      .stat-card
+        .stat-title 選択期間の総支出
+        .stat-value {{ isPrivacyMode ? '¥***' : formatCurrency(statsData.totalAmount) }}
 
-    .stat-card.green
-      .stat-title 1日平均支出
-      .stat-value {{ isPrivacyMode ? '¥***' : formatCurrency(statsData.averageDaily) }}
+      .stat-card.red
+        .stat-title 最も高い支出
+        .stat-value {{ isPrivacyMode ? '¥***' : formatCurrency(statsData.maxAmount) }}
 
-    .stat-card.orange
-      .stat-title 取引件数
-      .stat-value {{ statsData.transactionCount }}件
+      .stat-card.green
+        .stat-title 1日平均支出
+        .stat-value {{ isPrivacyMode ? '¥***' : formatCurrency(statsData.averageDaily) }}
 
-  .analytics-grid
-    .chart-section
-      .chart-title カテゴリ別支出割合
-      .chart-container
-        .pie-chart-wrapper
-          canvas(ref="categoryPieChart")
-          .chart-legend(ref="chartLegend")
+      .stat-card.orange
+        .stat-title 取引件数
+        .stat-value {{ statsData.transactionCount }}件
 
-    .chart-section
-      .chart-title 日別支出推移
-      .chart-container
-        canvas(ref="dailyLineChart")
+    .analytics-grid
+      .chart-section
+        .chart-title カテゴリ別支出割合
+        .chart-container
+          .pie-chart-wrapper
+            canvas(ref="categoryPieChart")
+            .chart-legend(ref="chartLegend")
 
-  .details-section.full-width
-    .chart-title 取引明細
+      .chart-section
+        .chart-title 日別支出推移
+        .chart-container
+          canvas(ref="dailyLineChart")
 
-    .filter-bar
-      select.filter-select(v-model="selectedCategory" @change="applyFilters")
-        option(value="") 全カテゴリ
-        option(value="投資") 投資
-        option(value="食費") 食費
-        option(value="日用品費") 日用品費
-        option(value="娯楽費") 娯楽費
-        option(value="住宅費") 住宅費
-        option(value="交通費") 交通費
-        option(value="その他") その他
+    AiSummaryCard(:year="currentYear" :month="currentMonth")
 
-      select.filter-select(v-model="sortOrder" @change="applyFilters")
-        option(value="amount_desc") 金額順（高い順）
-        option(value="amount_asc") 金額順（安い順）
-        option(value="date_desc") 日付順（新しい順）
-        option(value="date_asc") 日付順（古い順）
+  div(v-show="activeTab === 'insights'")
+    .analytics-extra-grid
+      BudgetCard(:year="currentYear" :month="currentMonth" :isPrivacyMode="isPrivacyMode")
+      MonthlyComparisonCard(:year="currentYear" :month="currentMonth" :isPrivacyMode="isPrivacyMode")
 
-    .table-container
-      table.transaction-table
-        thead
-          tr
-            th 日付
-            th 店舗・サービス
-            th カテゴリ
-            th 金額
+    RecurringCard(:isPrivacyMode="isPrivacyMode")
 
-        tbody
-          tr(v-for="(transaction, index) in transactions" :key="index")
-            td {{ transaction.date }}
-            td {{ transaction.store }}
-            td
-              CategoryTag(
-                :category="transaction.category"
-                :categoryText="transaction.categoryText"
-                @change-category="handleCategoryChange(index, $event)"
-              )
-            td.amount {{ isPrivacyMode ? '¥***' : transaction.amount }}
+  div(v-show="activeTab === 'details'")
+    .details-section.full-width
+      .chart-title 取引明細
+
+      .filter-bar
+        select.filter-select(v-model="selectedCategory" @change="applyFilters")
+          option(value="") 全カテゴリ
+          option(value="投資") 投資
+          option(value="食費") 食費
+          option(value="日用品費") 日用品費
+          option(value="娯楽費") 娯楽費
+          option(value="住宅費") 住宅費
+          option(value="交通費") 交通費
+          option(value="その他") その他
+
+        select.filter-select(v-model="sortOrder" @change="applyFilters")
+          option(value="amount_desc") 金額順（高い順）
+          option(value="amount_asc") 金額順（安い順）
+          option(value="date_desc") 日付順（新しい順）
+          option(value="date_asc") 日付順（古い順）
+
+      .table-container
+        table.transaction-table
+          thead
+            tr
+              th 日付
+              th 店舗・サービス
+              th カテゴリ
+              th 金額
+
+          tbody
+            tr(v-for="(transaction, index) in transactions" :key="index")
+              td {{ transaction.date }}
+              td(:title="transaction.store") {{ transaction.store }}
+              td
+                CategoryTag(
+                  :category="transaction.category"
+                  :categoryText="transaction.categoryText"
+                  @change-category="handleCategoryChange(index, $event)"
+                )
+              td.amount {{ isPrivacyMode ? '¥***' : transaction.amount }}
 </template>
 
 <script>
 import { ref, onMounted, onBeforeUnmount, computed, reactive } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import CategoryTag from './CategoryTag.vue'
+import AiSummaryCard from './AiSummaryCard.vue'
+import BudgetCard from './BudgetCard.vue'
+import MonthlyComparisonCard from './MonthlyComparisonCard.vue'
+import RecurringCard from './RecurringCard.vue'
 import apiService from '../services/api.js'
 
 Chart.register(...registerables)
 
 export default {
   name: 'AnalyticsPage',
-  components: { CategoryTag },
+  components: { CategoryTag, AiSummaryCard, BudgetCard, MonthlyComparisonCard, RecurringCard },
   props: {
     isPrivacyMode: {
       type: Boolean,
@@ -160,6 +183,13 @@ export default {
       averageDaily: 0,
       transactionCount: 0
     })
+
+    const activeTab = ref('overview')
+    const tabs = [
+      { id: 'overview', label: '概要' },
+      { id: 'insights', label: 'インサイト' },
+      { id: 'details', label: '取引明細' }
+    ]
 
     const transactions = ref([])
     const allTransactions = ref([])
@@ -439,13 +469,13 @@ export default {
         const categoryData = monthlyData.category_totals || []
 
         const allCategories = [
-          { category: '投資', color: '#FF6384' },
-          { category: '食費', color: '#4BC0C0' },
-          { category: '日用品費', color: '#9966FF' },
-          { category: '娯楽費', color: '#36A2EB' },
-          { category: '住宅費', color: '#FF9F40' },
-          { category: '交通費', color: '#FFCE56' },
-          { category: 'その他', color: '#C9CBCF' }
+          { category: '投資', color: '#FC3059' },
+          { category: '食費', color: '#14b8a6' },
+          { category: '日用品費', color: '#8b5cf6' },
+          { category: '娯楽費', color: '#338EE8' },
+          { category: '住宅費', color: '#B87500' },
+          { category: '交通費', color: '#B89000' },
+          { category: 'その他', color: '#868F9C' }
         ]
 
         const completeData = allCategories.map(defaultCat => {
@@ -516,11 +546,11 @@ export default {
               datasets: [{
                 label: '支出額',
                 data: dailyAmounts,
-                borderColor: '#38bdf8',
-                backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                borderColor: '#338EE8',
+                backgroundColor: 'rgba(51, 142, 232, 0.1)',
                 tension: 0.4,
                 fill: true,
-                pointBackgroundColor: '#38bdf8',
+                pointBackgroundColor: '#338EE8',
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2
               }]
@@ -594,6 +624,8 @@ export default {
       formatCurrency,
       handleCategoryChange,
       updateCharts,
+      activeTab,
+      tabs,
       selectedCategory,
       sortOrder,
       applyFilters,
@@ -603,16 +635,13 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.analytics-page {
-  
-}
-
 .month-navigation {
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  background: $color-surface;
+  border-radius: $radius-md;
+  padding: $sp-5;
+  margin-bottom: $sp-5;
+  box-shadow: $shadow-sm;
+  border: 1px solid $color-border-light;
   position: relative;
 }
 
@@ -620,22 +649,17 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  
-  // モバイル対応
+  gap: $sp-5;
+
   @media (max-width: 480px) {
-    gap: 10px;
-    
-    .month-selector {
-      min-width: 110px;
-      font-size: 0.9em;
-    }
+    gap: $sp-2;
+    .month-selector { min-width: 110px; font-size: $font-size-sm; }
   }
 }
 
 .nav-btn {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background: $color-surface-sub;
+  border: 1px solid $color-border;
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -643,67 +667,46 @@ export default {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  
+  transition: $transition-base;
+  color: $color-text-secondary;
+
   &:hover:not(:disabled) {
-    background: #4CAF50;
-    color: white;
-    border-color: #4CAF50;
+    background: $color-accent;
+    color: #fff;
+    border-color: $color-accent;
   }
-  
+
   &:disabled {
     opacity: 0.3;
     cursor: not-allowed;
   }
-  
-  svg {
-    fill: currentColor;
-    transition: all 0.3s ease;
-  }
-  
-  .arrow {
-    font-size: 1.2em;
-    font-weight: bold;
-  }
-  
-  .arrow-double {
-    font-size: 1.0em;
-    font-weight: bold;
-  }
+
+  svg { fill: currentColor; }
 }
 
 .month-selector {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  padding: 10px 15px;
+  background: $color-surface-sub;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  padding: $sp-2 + 2 $sp-4 - 1;
   cursor: pointer;
   user-select: none;
-  transition: all 0.3s ease;
+  transition: $transition-base;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: $sp-2;
   min-width: 140px;
   justify-content: space-between;
-  
-  &:hover {
-    background: #e9ecef;
-  }
-  
-  .selected-month {
-    font-weight: 600;
-  }
-  
+
+  &:hover { background: $color-border-light; }
+
+  .selected-month { font-weight: $font-weight-semibold; }
+
   .dropdown-arrow {
-    font-size: 0.8em;
-    color: #6c757d;
+    color: $color-text-muted;
     display: flex;
     align-items: center;
-    
-    svg {
-      fill: currentColor;
-      transition: transform 0.3s ease;
-    }
+    svg { fill: currentColor; }
   }
 }
 
@@ -712,13 +715,13 @@ export default {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  background: white;
-  border: 1px solid #dee2e6;
-  border-radius: 10px;
-  padding: 20px;
-  margin-top: 10px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-  z-index: 100;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: $sp-5;
+  margin-top: $sp-2;
+  box-shadow: $shadow-lg;
+  z-index: $z-overlay;
   min-width: 280px;
 }
 
@@ -726,21 +729,21 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 15px;
-  margin-bottom: 15px;
+  gap: $sp-4;
+  margin-bottom: $sp-4;
 }
 
 .year-display {
-  font-size: 1.1em;
-  font-weight: 600;
-  color: #333;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
   min-width: 80px;
   text-align: center;
 }
 
 .year-btn {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background: $color-surface-sub;
+  border: 1px solid $color-border;
   border-radius: 50%;
   width: 30px;
   height: 30px;
@@ -748,364 +751,316 @@ export default {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  
+  transition: $transition-base;
+  color: $color-text-secondary;
+
   &:hover:not(:disabled) {
-    background: #4CAF50;
-    color: white;
-    border-color: #4CAF50;
+    background: $color-accent;
+    color: #fff;
+    border-color: $color-accent;
   }
-  
-  &:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-  
-  svg {
-    fill: currentColor;
-    transition: all 0.3s ease;
-  }
+
+  &:disabled { opacity: 0.3; cursor: not-allowed; }
+  svg { fill: currentColor; }
 }
 
 .month-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: $sp-2;
 }
 
 .month-item {
-  padding: 8px;
+  padding: $sp-2;
   text-align: center;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.9em;
-  
-  &:hover {
-    background: #f8f9fa;
-  }
-  
+  transition: $transition-base;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+
+  &:hover { background: $color-surface-sub; }
+
   &.has-data {
-    background: #e8f5e8;
-    border-color: #4CAF50;
-    color: #2e7d2e;
-    font-weight: 600;
-    
-    &:hover {
-      background: #d4edda;
-    }
+    background: $color-success-bg;
+    border-color: $color-success;
+    color: $color-success;
+    font-weight: $font-weight-semibold;
+
+    &:hover { background: darken(#E4F5EA, 5%); }
   }
-  
+
   &.active {
-    background: #4CAF50;
-    color: white;
-    border-color: #4CAF50;
+    background: $color-accent;
+    color: #fff;
+    border-color: $color-accent;
   }
-  
+
   &:not(.has-data) {
     opacity: 0.3;
     cursor: not-allowed;
-    background: #f8f9fa;
-    color: #999;
-    border-color: #e9ecef;
-    
-    &:hover {
-      background: #f8f9fa !important;
-      cursor: not-allowed !important;
-    }
+    background: $color-surface-sub;
+
+    &:hover { background: $color-surface-sub !important; cursor: not-allowed !important; }
   }
 }
 
-.analytics-page {
-  
+.analytics-tabs {
+  display: flex;
+  gap: $sp-2;
+  margin-bottom: $sp-5;
+  border-bottom: 2px solid $color-border-light;
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  padding: $sp-2 + 2 $sp-5;
+  border: none;
+  background: transparent;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: $transition-fast;
+
+  &:hover { color: $color-accent; }
+
+  &.active {
+    color: $color-accent;
+    border-bottom-color: $color-accent;
+    font-weight: $font-weight-semibold;
+  }
 }
 
 .stats-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-  
-  // モバイル対応
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr); // 2列固定
-    gap: 15px;
-  }
-  
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr; // 1列レイアウト
-    gap: 15px;
-  }
+  gap: $sp-5;
+  margin-bottom: $sp-8;
+
+  @media (max-width: $bp-md) { grid-template-columns: repeat(2, 1fr); gap: $sp-4; }
+  @media (max-width: 480px)  { grid-template-columns: 1fr; }
 }
 
 .stat-card {
-  background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
-  color: white;
-  padding: 20px;
-  border-radius: 10px;
+  background: $color-accent;
+  color: #fff;
+  padding: $sp-5;
+  border-radius: $radius-md;
   text-align: center;
-  
-  &.red {
-    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
-  }
-  
-  &.green {
-    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
-  }
-  
-  &.orange {
-    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
-  }
+
+  &.red    { background: $color-danger; }
+  &.green  { background: $color-success; }
+  &.orange { background: $color-warning; }
 }
 
 .stat-title {
-  font-size: 0.9em;
-  opacity: 0.9;
-  margin-bottom: 10px;
+  font-size: $font-size-sm;
+  opacity: 0.88;
+  margin-bottom: $sp-2;
 }
 
 .stat-value {
-  font-size: 1.8em;
-  font-weight: bold;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
 }
 
 .analytics-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 30px;
-  margin-bottom: 30px;
-  
-  // モバイル対応
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr; // 1列レイアウト
-    gap: 20px;
-  }
+  gap: $sp-8;
+  margin-bottom: $sp-8;
+
+  @media (max-width: $bp-md) { grid-template-columns: 1fr; gap: $sp-5; }
 }
 
 .chart-section {
-  background: white;
-  border-radius: 10px;
-  padding: 25px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  background: $color-surface;
+  border-radius: $radius-md;
+  padding: $sp-6;
+  box-shadow: $shadow-sm;
+  border: 1px solid $color-border-light;
 }
 
 .chart-title {
-  font-size: 1.3em;
-  color: #333;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #f8f9fa;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $sp-5;
+  padding-bottom: $sp-2;
+  border-bottom: 2px solid $color-border-light;
 }
 
 .chart-container {
   position: relative;
   height: 300px;
-  
+
   .pie-chart-wrapper {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: $sp-5;
     align-items: center;
     height: 100%;
-    
+
     canvas {
       max-width: 200px;
       max-height: 200px;
       margin: 0 auto;
     }
-    
+
     .chart-legend {
       .legend-item {
         display: flex;
         align-items: center;
-        margin-bottom: 8px;
-        padding: 6px 8px;
-        background: #f8f9fa;
-        border-radius: 6px;
-        transition: background 0.2s ease;
+        margin-bottom: $sp-2;
+        padding: $sp-1 + 2 $sp-2;
+        background: $color-surface-sub;
+        border-radius: $radius-sm;
+        transition: $transition-fast;
         line-height: 1;
-        
-        &:hover {
-          background: #e9ecef;
-        }
-        
+
+        &:hover { background: $color-border-light; }
+
         .legend-color {
           width: 14px;
           height: 14px;
           border-radius: 3px;
-          margin-right: 8px;
+          margin-right: $sp-2;
           flex-shrink: 0;
-          display: inline-block;
-          vertical-align: middle;
         }
-        
+
         .legend-text-container {
           flex: 1;
           display: inline-flex;
           justify-content: space-between;
           align-items: center;
-          vertical-align: middle;
         }
-        
+
         .legend-label {
-          font-weight: 500;
-          color: #333;
-          font-size: 13px;
+          font-weight: $font-weight-medium;
+          color: $color-text-primary;
+          font-size: $font-size-sm;
         }
-        
+
         .legend-value {
-          font-weight: 600;
-          color: #666;
-          font-size: 12px;
-          margin-left: 8px;
-        }
-      }
-    }
-    
-    // モバイル対応
-    @media (max-width: 768px) {
-      .pie-chart-wrapper {
-        grid-template-columns: 1fr;
-        gap: 15px;
-        
-        canvas {
-          max-width: 220px;
-          max-height: 220px;
-        }
-        
-        .chart-legend {
-          .legend-item {
-            margin-bottom: 6px;
-            padding: 5px 6px;
-            
-            .legend-text-container {
-              .legend-label {
-                font-size: 12px;
-              }
-              
-              .legend-value {
-                font-size: 11px;
-              }
-            }
-          }
+          font-weight: $font-weight-semibold;
+          color: $color-text-secondary;
+          font-size: $font-size-xs;
+          margin-left: $sp-2;
         }
       }
     }
   }
 }
 
+.analytics-extra-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $sp-5;
+  margin-bottom: $sp-5;
+
+  @media (max-width: $bp-md) { grid-template-columns: 1fr; }
+}
+
 .details-section {
-  background: white;
-  border-radius: 10px;
-  padding: 25px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  margin-bottom: 30px;
+  background: $color-surface;
+  border-radius: $radius-md;
+  padding: $sp-6;
+  box-shadow: $shadow-sm;
+  border: 1px solid $color-border-light;
+  margin-bottom: $sp-8;
   overflow: visible;
-  
-  &.full-width {
-    grid-column: 1 / -1;
-  }
+
+  &.full-width { grid-column: 1 / -1; }
 }
 
 .filter-bar {
   display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
+  gap: $sp-4;
+  margin-bottom: $sp-5;
   flex-wrap: wrap;
-  
-  // モバイル対応
-  @media (max-width: 768px) {
-    gap: 10px;
-    
-    .filter-select {
-      flex: 1;
-      min-width: 120px;
-    }
+
+  @media (max-width: $bp-md) {
+    gap: $sp-2;
+    .filter-select { flex: 1; min-width: 120px; }
   }
 }
 
 .filter-select {
-  padding: 8px 15px;
-  border: 1px solid #dee2e6;
-  border-radius: 5px;
-  background: white;
-  font-size: 0.9em;
+  padding: $sp-2 $sp-4;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  background: $color-surface;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+
+  &:focus {
+    outline: none;
+    border-color: $color-accent;
+    box-shadow: 0 0 0 2px $color-accent-light;
+  }
 }
 
 .transaction-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
-  table-layout: fixed; // 固定レイアウトを強制
+  margin-top: $sp-5;
+  table-layout: fixed;
 }
 
 .table-container {
   overflow: visible;
   position: relative;
-  
-  // モバイル対応
-  @media (max-width: 768px) {
-    overflow-x: auto; // 横スクロール有効
-    
+
+  @media (max-width: $bp-md) {
+    overflow-x: auto;
     .transaction-table {
-      min-width: 600px; // 最小幅設定
-      
-      th, td {
-        padding: 8px; // パディング調整
-        font-size: 0.85em; // フォントサイズ調整
-      }
+      min-width: 600px;
+      th, td { padding: $sp-2; font-size: $font-size-sm; }
     }
   }
 }
 
 .transaction-table th {
-  background: #f8f9fa;
-  padding: 12px;
+  background: $color-surface-sub;
+  padding: $sp-3;
   text-align: left;
-  border-bottom: 2px solid #dee2e6;
-  font-weight: 600;
-  
-  // 列幅を固定
-  &:nth-child(1) { width: 100px; } // 日付
-  &:nth-child(2) { width: 200px; } // 店舗・サービス
-  &:nth-child(3) { width: 120px; } // カテゴリ
-  &:nth-child(4) { width: 100px; } // 金額
+  border-bottom: 2px solid $color-border;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+
+  &:nth-child(1) { width: 100px; }
+  &:nth-child(2) { width: 200px; }
+  &:nth-child(3) { width: 120px; }
+  &:nth-child(4) { width: 100px; }
 }
 
 .transaction-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid #dee2e6;
-  
-  // セル幅を固定（thと同じ）
-  &:nth-child(1) { width: 100px; } // 日付
-  &:nth-child(2) { 
-    width: 200px; // 店舗・サービス
+  padding: $sp-2 + 2 $sp-3;
+  border-bottom: 1px solid $color-border-light;
+
+  &:nth-child(1) { width: 100px; }
+  &:nth-child(2) {
+    width: 200px;
     max-width: 200px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  &:nth-child(3) { width: 120px; } // カテゴリ
-  &:nth-child(4) { width: 100px; } // 金額
+  &:nth-child(3) { width: 120px; }
+  &:nth-child(4) { width: 100px; }
 }
 
-.transaction-table tr:hover {
-  background: #f8f9fa;
-}
-
-.transaction-table tr {
-  position: relative;
-}
+.transaction-table tr:hover { background: $color-surface-sub; }
+.transaction-table tr { position: relative; }
 
 .amount {
-  font-weight: bold;
+  font-weight: $font-weight-semibold;
   text-align: right;
+  color: $color-text-primary;
 }
-
-.privacy-toggle {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
 </style>

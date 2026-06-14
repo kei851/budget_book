@@ -165,41 +165,42 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(45, 55, 69, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: $z-modal;
 }
 
 .upload-manager {
-  background: white;
-  border-radius: 12px;
+  background: $color-surface;
+  border-radius: $radius-lg;
   min-width: 500px;
   max-width: 700px;
   max-height: 80vh;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: $shadow-lg;
 }
 
 .modal-header {
-  background: #f8f9fa;
-  padding: 20px;
+  background: $color-surface-sub;
+  padding: $sp-5;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #dee2e6;
-  
+  border-bottom: 1px solid $color-border;
+
   h2 {
     margin: 0;
-    color: #495057;
-    font-size: 1.5em;
+    color: $color-text-primary;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
   }
-  
+
   .close-btn {
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: $font-size-xl;
     cursor: pointer;
     padding: 0;
     width: 30px;
@@ -207,70 +208,63 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #6c757d;
-    
-    &:hover {
-      color: #495057;
-    }
+    color: $color-text-muted;
+    line-height: 1;
+
+    &:hover { color: $color-text-primary; }
   }
 }
 
 .modal-content {
-  padding: 20px;
+  padding: $sp-5;
   max-height: 400px;
   overflow-y: auto;
 }
 
 .loading, .empty-state {
   text-align: center;
-  padding: 40px;
-  color: #6c757d;
+  padding: $sp-10;
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
 }
 
 .batch-actions {
-  margin-bottom: 20px;
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  
+  margin-bottom: $sp-5;
+  padding: $sp-4;
+  background: $color-surface-sub;
+  border-radius: $radius-sm;
+
   .batch-controls {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 15px;
-    
+    gap: $sp-4;
+
     .select-all-label {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: $sp-2;
       cursor: pointer;
-      font-weight: 500;
-      
-      input[type="checkbox"] {
-        width: 16px;
-        height: 16px;
-        cursor: pointer;
-      }
+      font-weight: $font-weight-medium;
+      font-size: $font-size-sm;
+      color: $color-text-primary;
+
+      input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
     }
-    
+
     .batch-delete-btn {
-      background: #dc3545;
-      color: white;
+      background: $color-danger;
+      color: #fff;
       border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
+      padding: $sp-2 $sp-4;
+      border-radius: $radius-sm;
       cursor: pointer;
-      font-weight: 500;
-      transition: background 0.2s;
-      
-      &:hover:not(:disabled) {
-        background: #c82333;
-      }
-      
-      &:disabled {
-        background: #6c757d;
-        cursor: not-allowed;
-      }
+      font-weight: $font-weight-medium;
+      font-size: $font-size-sm;
+      transition: $transition-fast;
+
+      &:hover:not(:disabled) { background: $red-700; }
+      &:disabled { background: $color-text-muted; cursor: not-allowed; }
     }
   }
 }
@@ -279,118 +273,90 @@ export default {
   .history-item {
     display: flex;
     align-items: center;
-    padding: 15px;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    gap: 15px;
+    padding: $sp-4;
+    border: 1px solid $color-border;
+    border-radius: $radius-sm;
+    margin-bottom: $sp-2;
+    gap: $sp-4;
     cursor: pointer;
-    transition: all 0.2s ease;
-    
+    transition: $transition-fast;
+
     &:hover {
-      background: #f8f9fa;
-      border-color: #4CAF50;
+      background: $color-surface-sub;
+      border-color: $color-accent;
     }
-    
+
     &.selected {
-      background: #e8f5e8;
-      border-color: #4CAF50;
-      box-shadow: 0 2px 4px rgba(76, 175, 80, 0.1);
+      background: $color-accent-light;
+      border-color: $color-accent;
+      box-shadow: $shadow-xs;
     }
   }
-  
+
   .history-checkbox {
     display: flex;
     align-items: center;
-    
-    input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      cursor: pointer;
-    }
+    input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
   }
-  
+
   .history-info {
     flex: 1;
-    
+
     .filename {
-      font-weight: 600;
-      color: #495057;
-      margin-bottom: 5px;
+      font-weight: $font-weight-semibold;
+      color: $color-text-primary;
+      margin-bottom: $sp-1;
+      font-size: $font-size-sm;
     }
-    
+
     .details {
       display: flex;
-      gap: 15px;
-      font-size: 0.9em;
-      color: #6c757d;
-      
-      .date {
-        &:before {
-          content: "📅 ";
-        }
-      }
-      
-      .count {
-        &:before {
-          content: "📊 ";
-        }
-      }
+      gap: $sp-4;
+      font-size: $font-size-xs;
+      color: $color-text-secondary;
+
+      .date::before { content: "📅 "; }
+      .count::before { content: "📊 "; }
     }
   }
-  
 }
 
 .modal-footer {
-  padding: 20px;
-  border-top: 1px solid #dee2e6;
+  padding: $sp-5;
+  border-top: 1px solid $color-border;
   display: flex;
   justify-content: flex-end;
-  
+
   .cancel-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
+    background: $color-surface-sub;
+    color: $color-text-secondary;
+    border: 1px solid $color-border;
+    padding: $sp-2 + 2 $sp-5;
+    border-radius: $radius-sm;
     cursor: pointer;
-    
-    &:hover {
-      background: #545b62;
-    }
+    font-size: $font-size-sm;
+    transition: $transition-fast;
+
+    &:hover { background: $color-border-light; }
   }
 }
 
-// モバイル対応
-@media (max-width: 768px) {
-  .upload-manager {
-    min-width: 90%;
-    margin: 20px;
-  }
-  
+@media (max-width: $bp-md) {
+  .upload-manager { min-width: 90%; margin: $sp-5; }
+
   .batch-controls {
     flex-direction: column;
     align-items: stretch;
-    gap: 10px;
-    
-    .batch-delete-btn {
-      width: 100%;
-    }
+    gap: $sp-2;
+    .batch-delete-btn { width: 100%; }
   }
-  
+
   .history-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
-    
-    .history-checkbox {
-      align-self: flex-start;
-    }
-    
-    .history-info {
-      align-self: stretch;
-    }
-    
+    gap: $sp-2;
+    .history-checkbox { align-self: flex-start; }
+    .history-info { align-self: stretch; }
   }
 }
 </style>

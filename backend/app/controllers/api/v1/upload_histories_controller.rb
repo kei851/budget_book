@@ -6,19 +6,37 @@ class Api::V1::UploadHistoriesController < ApplicationController
     @upload_histories = UploadHistory.recent.includes(:transactions)
     
     histories_data = @upload_histories.map do |history|
+      txns = history.transactions
+      date_min = txns.minimum(:transaction_date)
+      date_max = txns.maximum(:transaction_date)
       {
         id: history.id,
         filename: history.filename,
         upload_date: history.formatted_upload_date,
         imported_count: history.imported_count,
-        transaction_count: history.transactions.count,
-        display_name: history.display_name
+        transaction_count: txns.count,
+        display_name: history.display_name,
+        data_source_type: history.data_source_type,
+        date_from: date_min&.strftime('%Y/%m/%d'),
+        date_to:   date_max&.strftime('%Y/%m/%d'),
+        date_range_label: date_min && date_max ? "#{date_min.strftime('%Y年%m月')}〜#{date_max.strftime('%Y年%m月')}" : nil
       }
     end
-    
+
+    # 全体のカバレッジ
+    all_min = Transaction.minimum(:transaction_date)
+    all_max = Transaction.maximum(:transaction_date)
+    total_transactions = Transaction.count
+
     render json: {
       upload_histories: histories_data,
-      total_count: @upload_histories.count
+      total_count: @upload_histories.count,
+      coverage: {
+        date_from: all_min&.strftime('%Y/%m/%d'),
+        date_to:   all_max&.strftime('%Y/%m/%d'),
+        label: all_min && all_max ? "#{all_min.strftime('%Y年%m月')}〜#{all_max.strftime('%Y年%m月')}" : nil,
+        total_transactions: total_transactions
+      }
     }
   end
 

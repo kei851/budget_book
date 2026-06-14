@@ -103,28 +103,28 @@ export default {
 .category-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 0.8em;
-  font-weight: bold;
+  gap: $sp-1 + 1;
+  padding: $sp-1 $sp-2 + 2;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: $transition-base;
   user-select: none;
-  
+
   &:hover {
-    opacity: 0.8;
+    opacity: 0.82;
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    box-shadow: $shadow-sm;
   }
-  
+
   &.editing {
-    box-shadow: 0 0 0 2px #4CAF50;
+    box-shadow: 0 0 0 2px $color-accent;
   }
-  
+
   .edit-icon {
-    font-size: 0.7em;
-    opacity: 0.7;
+    font-size: 0.75em;
+    opacity: 0.65;
   }
 }
 
@@ -132,100 +132,73 @@ export default {
   position: absolute;
   top: 100%;
   left: 0;
-  background: white;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-  z-index: 1000;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  z-index: $z-modal;
   min-width: 160px;
-  padding: 8px 0;
-  margin-top: 4px;
+  padding: $sp-2 0;
+  margin-top: $sp-1;
 }
 
 .dropdown-header {
-  padding: 8px 12px;
-  font-size: 0.8em;
-  font-weight: 600;
-  color: #666;
-  border-bottom: 1px solid #f0f0f0;
-  margin-bottom: 4px;
+  padding: $sp-2 $sp-3;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
+  border-bottom: 1px solid $color-border-light;
+  margin-bottom: $sp-1;
 }
 
 .category-option {
-  padding: 6px 12px;
+  padding: $sp-1 + 2 $sp-3;
   cursor: pointer;
-  transition: background 0.2s ease;
-  
+  transition: $transition-fast;
+
   &:hover {
-    background: #f8f9fa;
+    background: $color-surface-sub;
   }
-  
+
   &.active {
-    background: #e8f5e8;
+    background: $color-accent-light;
   }
 }
 
 .option-chip {
   display: inline-flex;
   align-items: center;
-  padding: 3px 8px;
-  border-radius: 10px;
-  font-size: 0.8em;
-  font-weight: bold;
+  padding: 3px $sp-2;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
 }
 
 .dropdown-footer {
-  border-top: 1px solid #f0f0f0;
-  padding: 8px 12px;
-  margin-top: 4px;
+  border-top: 1px solid $color-border-light;
+  padding: $sp-2 $sp-3;
+  margin-top: $sp-1;
 }
 
 .cancel-btn {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  padding: 4px 12px;
-  border-radius: 4px;
-  font-size: 0.8em;
+  background: $color-surface-sub;
+  border: 1px solid $color-border;
+  padding: $sp-1 $sp-3;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
   cursor: pointer;
-  
+  color: $color-text-secondary;
+
   &:hover {
-    background: #e9ecef;
+    background: $color-border-light;
   }
 }
 
-// カテゴリ別の色設定（DBのseedsと同じ色に統一）
-.category-investment {
-  background: #FF6384;
-  color: white;
-}
-
-.category-food {
-  background: #4BC0C0;
-  color: white;
-}
-
-.category-daily {
-  background: #9966FF;
-  color: white;
-}
-
-.category-entertainment {
-  background: #36A2EB;
-  color: white;
-}
-
-.category-housing {
-  background: #FF9F40;
-  color: white;
-}
-
-.category-transport {
-  background: #FFCE56;
-  color: black;
-}
-
-.category-other {
-  background: #C9CBCF;
-  color: black;
-}
+.category-investment  { background: $color-investment;    color: #fff; }
+.category-food        { background: $color-food;          color: #fff; }
+.category-daily       { background: $color-daily;         color: #fff; }
+.category-entertainment { background: $color-entertainment; color: #fff; }
+.category-housing     { background: $color-housing;       color: #fff; }
+.category-transport   { background: $color-transport;     color: $color-text-primary; }
+.category-other       { background: $color-other;         color: $color-text-primary; }
 </style>

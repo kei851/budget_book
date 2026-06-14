@@ -19,7 +19,7 @@ Rails.application.routes.draw do
       
       # 取引データ管理APIのリソースルーティングを定義する
       # only: で指定したアクション（index, update）のみを有効にする
-      resources :transactions, only: [:index, :update] do
+      resources :transactions, only: [:index, :create, :update, :destroy] do
         # collectionブロック：取引データ全体に対するカスタムアクションを定義する
         collection do
           # POST /api/v1/transactions/import - CSVファイルから取引データを一括インポートするエンドポイント
@@ -34,6 +34,36 @@ Rails.application.routes.draw do
       # アップロード履歴管理APIのリソースルーティングを定義する
       # only: で指定したアクション（index, show, destroy）のみを有効にする
       resources :upload_histories, only: [:index, :show, :destroy]
+
+      # AI機能エンドポイント
+      namespace :ai do
+        post :monthly_summary
+        post :chat
+        post :reclassify
+      end
+
+      # 予算管理
+      resources :budgets, only: [] do
+        collection do
+          get  :index
+          put  :set_month
+        end
+      end
+
+      # インサイト（前月比較・定期支出）
+      namespace :insights do
+        get :monthly_comparison
+        get :recurring
+      end
+
+      # 資産管理
+      resources :asset_snapshots, only: [] do
+        collection do
+          get  :index
+          post :bulk_update
+          get  :history
+        end
+      end
     end
   end
 

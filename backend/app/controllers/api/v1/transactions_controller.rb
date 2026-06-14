@@ -1,5 +1,5 @@
 class Api::V1::TransactionsController < ApplicationController
-  before_action :set_transaction, only: [:update]
+  before_action :set_transaction, only: [:update, :destroy]
 
   def index
     @transactions = Transaction.includes(:category).order(transaction_date: :desc)
@@ -25,12 +25,42 @@ class Api::V1::TransactionsController < ApplicationController
     }
   end
 
+  def create
+    category = if params[:transaction][:category_id].present?
+      Category.find_by(id: params[:transaction][:category_id])
+    else
+      store_name = params[:transaction][:store_name]&.strip
+      CategoryRule.find_category_for_store(store_name) ||
+        CategoryClassifierService.new.classify(store_name)
+    end
+
+    transaction = Transaction.new(
+      transaction_date: params[:transaction][:transaction_date],
+      store_name: params[:transaction][:store_name]&.strip,
+      amount: params[:transaction][:amount].to_f,
+      payment_method: params[:transaction][:payment_method],
+      category: category,
+      auto_classified: params[:transaction][:category_id].blank? && category.present?
+    )
+
+    if transaction.save
+      render json: transaction.as_json(include: :category), status: :created
+    else
+      render json: { errors: transaction.errors.full_messages }, status: :unprocessable_entity
+    end
+  end
+
   def update
     if @transaction.update(transaction_params)
       render json: @transaction.as_json(include: :category)
     else
       render json: { errors: @transaction.errors.full_messages }, status: :unprocessable_entity
     end
+  end
+
+  def destroy
+    @transaction.destroy
+    head :no_content
   end
 
   def import

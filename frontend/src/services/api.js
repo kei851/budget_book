@@ -136,6 +136,66 @@ class ApiService {
     return true
   }
 
+  async getBudgets(year, month) {
+    const response = await fetch(`${this.baseURL}/budgets?year=${year}&month=${month}`)
+    if (!response.ok) throw new Error('予算データの取得に失敗しました')
+    return await response.json()
+  }
+
+  async setBudgets(year, month, budgets) {
+    const response = await fetch(`${this.baseURL}/budgets/set_month`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year, month, budgets })
+    })
+    if (!response.ok) throw new Error('予算の保存に失敗しました')
+    return await response.json()
+  }
+
+  async getMonthlyComparison(year, month) {
+    const response = await fetch(`${this.baseURL}/insights/monthly_comparison?year=${year}&month=${month}`)
+    if (!response.ok) throw new Error('比較データの取得に失敗しました')
+    return await response.json()
+  }
+
+  async getRecurring() {
+    const response = await fetch(`${this.baseURL}/insights/recurring`)
+    if (!response.ok) throw new Error('定期支出データの取得に失敗しました')
+    return await response.json()
+  }
+
+  async getAiMonthlySummary(year, month) {
+    const response = await fetch(`${this.baseURL}/ai/monthly_summary`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ year, month })
+    })
+    if (!response.ok) throw new Error('AIサマリの生成に失敗しました')
+    return await response.json()
+  }
+
+  async reclassifyTransactions() {
+    const response = await fetch(`${this.baseURL}/ai/reclassify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+    })
+    if (!response.ok) throw new Error('AI再分類に失敗しました')
+    return await response.json()
+  }
+
+  async createTransaction(data) {
+    const response = await fetch(`${this.baseURL}/transactions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ transaction: data })
+    })
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.errors?.join(', ') || '保存に失敗しました')
+    }
+    return await response.json()
+  }
+
   async bulkUpdateCategory(keyword, newCategoryId) {
     const response = await fetch(`${this.baseURL}/category_rules/bulk_update`, {
       method: 'PATCH',
